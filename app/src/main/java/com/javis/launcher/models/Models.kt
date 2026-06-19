@@ -92,6 +92,7 @@ enum class JavisAction {
     UPDATE_MEMORY,
     CHAT,
     OPEN_SETTINGS,
+    CLEAR_MISSED_CALLS,
     UNKNOWN
 }
 
