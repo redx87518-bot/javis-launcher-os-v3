@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="javis_bg">#050510</color>
+    <color name="javis_surface">#0D0D20</color>
+    <color name="javis_card">#12122A</color>
+    <color name="javis_red">#CC0000</color>
+    <color name="javis_red_bright">#FF1A1A</color>
+    <color name="javis_green">#00CC50</color>
+    <color name="javis_green_bright">#00FF64</color>
+    <color name="javis_white">#F0F0FF</color>
+    <color name="javis_text_primary">#E8E8FF</color>
+    <color name="javis_text_secondary">#8888AA</color>
+    <color name="javis_border">#1E1E40</color>
+    <color name="javis_orb_ring">#CC0000</color>
+</resources>
