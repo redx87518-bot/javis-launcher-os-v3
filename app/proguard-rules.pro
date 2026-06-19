@@ -1,0 +1,3 @@
+-keep class com.javis.launcher.** { *; }
+-keep class androidx.room.** { *; }
+-keepattributes *Annotation*
