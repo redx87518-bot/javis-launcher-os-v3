@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/javis_bg">
+
+    <!-- Top greeting area -->
+    <LinearLayout
+        android:id="@+id/layout_top"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp"
+        android:paddingTop="48dp"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <TextView
+            android:id="@+id/tv_greeting"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Good morning, Sir."
+            android:textColor="@color/javis_text_primary"
+            android:textSize="22sp"
+            android:fontFamily="sans-serif-light" />
+
+        <TextView
+            android:id="@+id/tv_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/javis_white"
+            android:textSize="56sp"
+            android:fontFamily="sans-serif-thin"
+            android:letterSpacing="0.05" />
+
+        <TextView
+            android:id="@+id/tv_date"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/javis_text_secondary"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/tv_status_line"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Everything is ready."
+            android:textColor="@color/javis_green"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <!-- AI Orb (center) -->
+    <com.javis.launcher.ui.voice.OrbView
+        android:id="@+id/btn_orb"
+        android:layout_width="180dp"
+        android:layout_height="180dp"
+        android:clickable="true"
+        android:focusable="true"
+        app:layout_constraintTop_toBottomOf="@id/layout_top"
+        app:layout_constraintBottom_toTopOf="@id/layout_nav"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Provider status -->
+    <TextView
+        android:id="@+id/tv_provider_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="AI: Not configured"
+        android:textColor="@color/javis_text_secondary"
+        android:textSize="11sp"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="4dp"
+        android:background="@drawable/bg_pill"
+        app:layout_constraintTop_toBottomOf="@id/btn_orb"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/rv_favorite_apps"
+        android:layout_marginBottom="8dp"/>
+
+    <!-- Favorite Apps -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_favorite_apps"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingHorizontal="16dp"
+        app:layout_constraintBottom_toTopOf="@id/layout_nav"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginBottom="8dp"/>
+
+    <!-- Bottom Navigation -->
+    <LinearLayout
+        android:id="@+id/layout_nav"
+        android:layout_width="match_parent"
+        android:layout_height="72dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:background="@color/javis_surface"
+        android:paddingHorizontal="8dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent">
+
+        <ImageButton
+            android:id="@+id/btn_chat"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_chat"
+            android:tint="@color/javis_text_secondary"
+            android:contentDescription="Chat" />
+
+        <ImageButton
+            android:id="@+id/btn_memory"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_memory"
+            android:tint="@color/javis_text_secondary"
+            android:contentDescription="Memory" />
+
+        <ImageButton
+            android:id="@+id/btn_contacts"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_contacts"
+            android:tint="@color/javis_text_secondary"
+            android:contentDescription="Contacts" />
+
+        <ImageButton
+            android:id="@+id/btn_alarms"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_alarm"
+            android:tint="@color/javis_text_secondary"
+            android:contentDescription="Alarms" />
+
+        <ImageButton
+            android:id="@+id/btn_settings"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_settings"
+            android:tint="@color/javis_text_secondary"
+            android:contentDescription="Settings" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
