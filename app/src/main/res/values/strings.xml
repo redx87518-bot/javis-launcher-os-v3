@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">JAVIS</string>
+    <string name="tap_to_speak">Tap to speak</string>
+    <string name="listening">Listening…</string>
+    <string name="thinking">Thinking…</string>
+    <string name="speaking">Speaking…</string>
+    <string name="memory">Memory</string>
+    <string name="contacts">Contacts</string>
+    <string name="alarms">Alarms</string>
+    <string name="settings">Settings</string>
+    <string name="chat">Chat</string>
+</resources>
