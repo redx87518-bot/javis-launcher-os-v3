@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.JAVIS" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/javis_red</item>
+        <item name="colorPrimaryVariant">@color/javis_red_bright</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/javis_green</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="android:colorBackground">@color/javis_bg</item>
+        <item name="android:textColorPrimary">@color/javis_text_primary</item>
+        <item name="android:textColorSecondary">@color/javis_text_secondary</item>
+        <item name="android:windowBackground">@color/javis_bg</item>
+        <item name="android:statusBarColor">@color/javis_bg</item>
+        <item name="android:navigationBarColor">@color/javis_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <style name="Theme.JAVIS.Voice" parent="Theme.JAVIS">
+        <item name="android:windowBackground">@color/javis_bg</item>
+        <item name="android:statusBarColor">@color/javis_bg</item>
+    </style>
+</resources>
