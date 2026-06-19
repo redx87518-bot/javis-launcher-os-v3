@@ -1,12 +1,17 @@
 package com.javis.launcher.ui.home
 
+import android.Manifest
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.BatteryManager
 import android.os.Bundle
+import android.provider.CallLog
 import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -19,15 +24,17 @@ import com.javis.launcher.ui.contacts.ContactsActivity
 import com.javis.launcher.ui.memory.MemoryActivity
 import com.javis.launcher.ui.settings.SettingsActivity
 import com.javis.launcher.ui.voice.VoiceActivity
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.*
 
 class HomeActivity : AppCompatActivity() {
 
     private val memory get() = JavisApplication.instance.memoryEngine
-    private val voice get() = JavisApplication.instance.voiceEngine
+    private val voice  get() = JavisApplication.instance.voiceEngine
 
     private lateinit var tvGreeting: TextView
     private lateinit var tvTime: TextView
@@ -36,22 +43,22 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var rvFavoriteApps: RecyclerView
     private lateinit var tvProviderStatus: TextView
 
-    // Dynamic receiver for screen-unlock detection (ACTION_USER_PRESENT requires dynamic registration on Android 8+)
+    // Dynamic receiver — ACTION_USER_PRESENT cannot be declared statically on Android 8+
     private val unlockReceiver = UnlockReceiver()
     private var receiverRegistered = false
 
-    // Debounce: only speak the greeting once per unlock session, not on every onResume()
+    // Prevent re-greeting if the user locks/unlocks twice within 2 minutes
     private var lastGreetedAtMs = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
 
-        tvGreeting = findViewById(R.id.tv_greeting)
-        tvTime = findViewById(R.id.tv_time)
-        tvDate = findViewById(R.id.tv_date)
-        tvStatusLine = findViewById(R.id.tv_status_line)
-        rvFavoriteApps = findViewById(R.id.rv_favorite_apps)
+        tvGreeting      = findViewById(R.id.tv_greeting)
+        tvTime          = findViewById(R.id.tv_time)
+        tvDate          = findViewById(R.id.tv_date)
+        tvStatusLine    = findViewById(R.id.tv_status_line)
+        rvFavoriteApps  = findViewById(R.id.rv_favorite_apps)
         tvProviderStatus = findViewById(R.id.tv_provider_status)
 
         setupClock()
@@ -62,10 +69,8 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        // Register dynamically — only way to receive USER_PRESENT on Android 8+
         if (!receiverRegistered) {
-            val filter = IntentFilter(Intent.ACTION_USER_PRESENT)
-            registerReceiver(unlockReceiver, filter)
+            registerReceiver(unlockReceiver, IntentFilter(Intent.ACTION_USER_PRESENT))
             receiverRegistered = true
         }
     }
@@ -85,73 +90,119 @@ class HomeActivity : AppCompatActivity() {
         maybeDeliverUnlockGreeting()
     }
 
-    // ─── Unlock Greeting ──────────────────────────────────────────────────
+    // ─── Unlock Greeting ──────────────────────────────────────────────────────
     private fun maybeDeliverUnlockGreeting() {
         val now = System.currentTimeMillis()
-        // Guard: don't speak if we spoke within the last 2 minutes (prevents double-fire)
         if (now - lastGreetedAtMs < 2 * 60 * 1000L) return
         if (!UnlockReceiver.consumePendingGreeting(this)) return
 
         lastGreetedAtMs = now
         lifecycleScope.launch {
-            // Small delay so the screen is fully visible before speaking
-            delay(600)
+            delay(600) // short pause so screen is fully visible first
             val greeting = buildUnlockGreeting()
             tvStatusLine.text = greeting
-            if (voice.isReady()) {
-                voice.speak(greeting)
-            }
+            if (voice.isReady()) voice.speak(greeting)
         }
     }
 
-    private suspend fun buildUnlockGreeting(): String {
-        val name = memory.getNickname() ?: memory.getUserName()
+    private suspend fun buildUnlockGreeting(): String = withContext(Dispatchers.IO) {
+        val name    = memory.getNickname() ?: memory.getUserName()
         val address = if (name != null) ", $name" else ", Sir"
-
-        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        val hour    = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         val timeGreet = when {
             hour < 12 -> "Good morning"
             hour < 17 -> "Good afternoon"
             hour < 21 -> "Good evening"
-            else       -> "Welcome back"
+            else      -> "Welcome back"
         }
 
         val sb = StringBuilder("$timeGreet$address.")
 
-        // Battery level
-        val batteryLevel = getBatteryLevel()
-        if (batteryLevel >= 0) {
+        // ── Battery ──
+        val battery = getBatteryLevel()
+        if (battery >= 0) {
             when {
-                batteryLevel <= 15 -> sb.append(" Battery is low at ${batteryLevel}%. Please charge soon.")
-                batteryLevel == 100 -> sb.append(" Battery is fully charged.")
-                else -> sb.append(" Battery is at ${batteryLevel} percent.")
+                battery <= 15  -> sb.append(" Battery is low at ${battery} percent. Please charge soon.")
+                battery == 100 -> sb.append(" Battery is fully charged.")
+                else           -> sb.append(" Battery is at ${battery} percent.")
             }
         }
 
-        // Habit suggestion (most-used app)
+        // ── Missed calls ──
+        val missed = getMissedCallCount()
+        if (missed > 0) {
+            val callWord = if (missed == 1) "missed call" else "missed calls"
+            sb.append(" You have $missed $callWord.")
+        }
+
+        // ── Unread SMS ──
+        val unreadSms = getUnreadSmsCount()
+        if (unreadSms > 0) {
+            val msgWord = if (unreadSms == 1) "unread message" else "unread messages"
+            sb.append(" You have $unreadSms $msgWord.")
+        }
+
+        // ── Habit nudge ──
         val topApps = memory.getTopApps(1)
-        if (topApps.isNotEmpty()) {
+        if (topApps.isNotEmpty() && missed == 0 && unreadSms == 0) {
             sb.append(" You usually open ${topApps.first().appName} around this time.")
         }
 
-        return sb.toString()
+        sb.toString()
     }
+
+    // ─── System data helpers (safe — return 0/-1 on any exception) ────────────
 
     private fun getBatteryLevel(): Int {
-        val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-        val intent = registerReceiver(null, filter) ?: return -1
-        val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
-        val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
-        return if (level >= 0 && scale > 0) (level * 100 / scale) else -1
+        return try {
+            val intent = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED)) ?: return -1
+            val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+            val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+            if (level >= 0 && scale > 0) level * 100 / scale else -1
+        } catch (e: Exception) { -1 }
     }
 
-    // ─── Clock ────────────────────────────────────────────────────────────
+    private fun getMissedCallCount(): Int {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALL_LOG)
+            != PackageManager.PERMISSION_GRANTED) return 0
+        return try {
+            val cursor = contentResolver.query(
+                CallLog.Calls.CONTENT_URI,
+                arrayOf(CallLog.Calls._ID),
+                "${CallLog.Calls.TYPE} = ? AND ${CallLog.Calls.IS_READ} = ?",
+                arrayOf(CallLog.Calls.MISSED_TYPE.toString(), "0"),
+                null
+            )
+            val count = cursor?.count ?: 0
+            cursor?.close()
+            count
+        } catch (e: Exception) { 0 }
+    }
+
+    private fun getUnreadSmsCount(): Int {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS)
+            != PackageManager.PERMISSION_GRANTED) return 0
+        return try {
+            val cursor = contentResolver.query(
+                Uri.parse("content://sms/inbox"),
+                arrayOf("_id"),
+                "read = 0",
+                null,
+                null
+            )
+            val count = cursor?.count ?: 0
+            cursor?.close()
+            count
+        } catch (e: Exception) { 0 }
+    }
+
+    // ─── Clock ────────────────────────────────────────────────────────────────
     private fun setupClock() {
         val timer = object : Runnable {
             override fun run() {
-                val now = Calendar.getInstance()
+                val now     = Calendar.getInstance()
                 val timeFmt = SimpleDateFormat("hh:mm", Locale.getDefault())
-                val amPm   = SimpleDateFormat("a", Locale.getDefault())
+                val amPm    = SimpleDateFormat("a", Locale.getDefault())
                 val dateFmt = SimpleDateFormat("EEEE, MMMM d", Locale.getDefault())
                 tvTime.text = "${timeFmt.format(now.time)} ${amPm.format(now.time)}"
                 tvDate.text = dateFmt.format(now.time)
@@ -161,7 +212,7 @@ class HomeActivity : AppCompatActivity() {
         tvTime.post(timer)
     }
 
-    // ─── Greeting text ────────────────────────────────────────────────────
+    // ─── Greeting text (visual, no speech) ───────────────────────────────────
     private fun setupGreeting() {
         lifecycleScope.launch {
             val name = memory.getNickname() ?: memory.getUserName()
@@ -170,7 +221,7 @@ class HomeActivity : AppCompatActivity() {
                 hour < 12 -> "Good morning"
                 hour < 17 -> "Good afternoon"
                 hour < 21 -> "Good evening"
-                else       -> "Welcome back"
+                else      -> "Welcome back"
             }
             val address = if (name != null) ", $name" else ", Sir"
             tvGreeting.text = "$timeGreet$address."
@@ -184,7 +235,7 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
-    // ─── Favourite Apps ───────────────────────────────────────────────────
+    // ─── Favourite apps grid ──────────────────────────────────────────────────
     private fun setupFavoriteApps() {
         lifecycleScope.launch {
             val topApps = memory.getTopApps(6)
@@ -218,7 +269,7 @@ class HomeActivity : AppCompatActivity() {
         }
     }
 
-    // ─── Navigation Buttons ───────────────────────────────────────────────
+    // ─── Navigation ───────────────────────────────────────────────────────────
     private fun setupNavButtons() {
         findViewById<View>(R.id.btn_orb).setOnClickListener {
             startActivity(Intent(this, VoiceActivity::class.java))
@@ -241,6 +292,6 @@ class HomeActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() {
-        // Launcher never exits on back
+        // Launcher never exits on back press
     }
 }
