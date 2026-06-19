@@ -9,6 +9,11 @@ object IntentAnalyzer {
     fun analyze(input: String): IntentResult {
         val text = input.lowercase().trim()
 
+        // ─── Clear missed calls ────────────────────────────────────────────
+        if (matchesClearMissedCalls(text)) {
+            return IntentResult(action = JavisAction.CLEAR_MISSED_CALLS, confidence = 0.95f)
+        }
+
         // ─── App Opening ───────────────────────────────────────────────────
         if (matchesOpenApp(text)) {
             val appName = extractAppName(text)
@@ -69,6 +74,14 @@ object IntentAnalyzer {
         return IntentResult(action = JavisAction.CHAT, confidence = 0.5f)
     }
 
+    private fun matchesClearMissedCalls(text: String): Boolean {
+        return text.contains("i saw") || text.contains("mark") && text.contains("read") ||
+                text.contains("clear missed") || text.contains("dismiss") && text.contains("call") ||
+                text.contains("acknowledge") || text == "i saw those" || text == "got it" ||
+                text.contains("clear the calls") || text.contains("mark calls") ||
+                text.contains("clear calls") || text.contains("seen the calls")
+    }
+
     private fun matchesOpenApp(text: String): Boolean {
         return text.startsWith("open ") || text.startsWith("launch ") ||
                 text.startsWith("start ") || text.contains("open the ") ||
@@ -118,58 +131,47 @@ object IntentAnalyzer {
 
     private fun extractAlarmTime(text: String): Map<String, String> {
         val result = mutableMapOf<String, String>()
-
-        // Pattern: "6 AM", "6:30 PM", "at 7", "at 6 am"
         val timePattern = Regex("""(\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)?""")
         val match = timePattern.find(text)
         if (match != null) {
             var hour = match.groupValues[1].toInt()
             val minute = match.groupValues[2].takeIf { it.isNotEmpty() }?.toInt() ?: 0
             val amPm = match.groupValues[3].lowercase()
-
             when {
                 amPm == "pm" && hour != 12 -> hour += 12
                 amPm == "am" && hour == 12 -> hour = 0
             }
-
             result["hour"] = hour.toString()
             result["minute"] = minute.toString()
         }
-
-        // Extract label from "for <label>"
         val forIdx = text.indexOf(" for ")
         if (forIdx != -1) {
             val label = text.substring(forIdx + 5).trim()
-            if (label.isNotEmpty() && !label.first().isDigit()) {
-                result["label"] = label
-            }
+            if (label.isNotEmpty() && !label.first().isDigit()) result["label"] = label
         }
-
         return result
     }
 
     private fun extractMemoryKey(text: String): String {
         return when {
-            text.contains("name") -> "user_name"
-            text.contains("nickname") -> "user_nickname"
-            text.contains("favorite app") -> "favorite_app"
+            text.contains("name")            -> "user_name"
+            text.contains("nickname")        -> "user_nickname"
+            text.contains("favorite app")    -> "favorite_app"
             text.contains("favorite contact") -> "favorite_contact"
-            else -> "general"
+            else                             -> "general"
         }
     }
 
     private fun extractMemoryKeyValue(text: String): Pair<String, String> {
         return when {
-            text.startsWith("my name is") -> "user_name" to text.removePrefix("my name is").trim()
-            text.startsWith("call me ") -> "user_nickname" to text.removePrefix("call me ").trim()
-            text.contains("my favorite app is") -> {
-                val value = text.substringAfter("my favorite app is").trim()
-                "favorite_app" to value
-            }
-            text.startsWith("remember that ") -> {
-                val rest = text.removePrefix("remember that ").trim()
-                "custom_${System.currentTimeMillis()}" to rest
-            }
+            text.startsWith("my name is") ->
+                "user_name" to text.removePrefix("my name is").trim()
+            text.startsWith("call me ") ->
+                "user_nickname" to text.removePrefix("call me ").trim()
+            text.contains("my favorite app is") ->
+                "favorite_app" to text.substringAfter("my favorite app is").trim()
+            text.startsWith("remember that ") ->
+                "custom_${System.currentTimeMillis()}" to text.removePrefix("remember that ").trim()
             else -> "custom_info" to text
         }
     }
