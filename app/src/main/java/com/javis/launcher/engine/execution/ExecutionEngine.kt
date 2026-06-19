@@ -1,9 +1,11 @@
 package com.javis.launcher.engine.execution
 
+import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.AlarmClock
+import android.provider.CallLog
 import android.provider.ContactsContract
 import com.javis.launcher.JavisApplication
 import com.javis.launcher.engine.context.ContextEngine
@@ -23,18 +25,19 @@ class ExecutionEngine(private val context: Context) {
 
     suspend fun execute(intent: IntentResult): ExecutionResult = withContext(Dispatchers.Main) {
         return@withContext when (intent.action) {
-            JavisAction.OPEN_APP -> openApp(intent.params["appName"] ?: "")
-            JavisAction.CALL_CONTACT -> callContact(intent.params["contactName"] ?: "")
-            JavisAction.SET_ALARM -> setAlarm(intent.params)
-            JavisAction.QUERY_MEMORY -> queryMemory(intent.params["key"] ?: "")
-            JavisAction.UPDATE_MEMORY -> updateMemory(intent.params)
-            JavisAction.OPEN_SETTINGS -> {
+            JavisAction.OPEN_APP          -> openApp(intent.params["appName"] ?: "")
+            JavisAction.CALL_CONTACT      -> callContact(intent.params["contactName"] ?: "")
+            JavisAction.SET_ALARM         -> setAlarm(intent.params)
+            JavisAction.QUERY_MEMORY      -> queryMemory(intent.params["key"] ?: "")
+            JavisAction.UPDATE_MEMORY     -> updateMemory(intent.params)
+            JavisAction.CLEAR_MISSED_CALLS -> clearMissedCalls()
+            JavisAction.OPEN_SETTINGS     -> {
                 val i = Intent(android.provider.Settings.ACTION_SETTINGS)
                 i.flags = Intent.FLAG_ACTIVITY_NEW_TASK
                 context.startActivity(i)
                 ExecutionResult.Success("Opening settings.")
             }
-            JavisAction.CHAT -> ExecutionResult.Failure("CHAT") // handled by AI
+            JavisAction.CHAT    -> ExecutionResult.Failure("CHAT")
             JavisAction.UNKNOWN -> ExecutionResult.Failure("I'm not sure what you meant. Could you clarify?")
         }
     }
@@ -45,19 +48,16 @@ class ExecutionEngine(private val context: Context) {
 
         val pm = context.packageManager
         val apps = pm.getInstalledApplications(0)
-
         val matches = apps.filter { appInfo ->
-            val label = pm.getApplicationLabel(appInfo).toString()
-            label.lowercase().contains(appName.lowercase())
+            pm.getApplicationLabel(appInfo).toString().lowercase().contains(appName.lowercase())
         }
 
-        if (matches.isEmpty()) {
+        if (matches.isEmpty())
             return ExecutionResult.Failure("I couldn't find an app called $appName on your device.")
-        }
 
-        // Pick exact match first, then closest
-        val best = matches.firstOrNull { pm.getApplicationLabel(it).toString().lowercase() == appName.lowercase() }
-            ?: matches.first()
+        val best = matches.firstOrNull {
+            pm.getApplicationLabel(it).toString().lowercase() == appName.lowercase()
+        } ?: matches.first()
 
         val launchIntent = pm.getLaunchIntentForPackage(best.packageName)
             ?: return ExecutionResult.Failure("$appName is installed but cannot be launched.")
@@ -66,11 +66,10 @@ class ExecutionEngine(private val context: Context) {
         launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED
         context.startActivity(launchIntent)
 
-        // Track usage
         memory.trackAppOpen(best.packageName, appLabel)
         ContextEngine.updateApp(InstalledApp(best.packageName, appLabel))
 
-        return ExecutionResult.Success("$appLabel opened successfully.")
+        return ExecutionResult.Success("$appLabel opened.")
     }
 
     // ─── Contact Calling ───────────────────────────────────────────────────
@@ -78,11 +77,9 @@ class ExecutionEngine(private val context: Context) {
         if (name.isBlank()) return@withContext ExecutionResult.Failure("Who would you like to call?")
 
         val contacts = findContacts(name)
-
         when {
-            contacts.isEmpty() -> {
+            contacts.isEmpty() ->
                 ExecutionResult.Failure("I couldn't find anyone named $name in your contacts.")
-            }
             contacts.size == 1 -> {
                 val contact = contacts.first()
                 withContext(Dispatchers.Main) { initiateCall(contact) }
@@ -106,45 +103,37 @@ class ExecutionEngine(private val context: Context) {
             ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME,
             ContactsContract.CommonDataKinds.Phone.NUMBER
         )
-        val selection = "${ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME} LIKE ?"
-        val args = arrayOf("%$name%")
-
-        context.contentResolver.query(uri, projection, selection, args, null)?.use { cursor ->
-            val idIdx = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.CONTACT_ID)
-            val nameIdx = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
+        context.contentResolver.query(
+            uri, projection,
+            "${ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME} LIKE ?",
+            arrayOf("%$name%"), null
+        )?.use { cursor ->
+            val idIdx    = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.CONTACT_ID)
+            val nameIdx  = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME)
             val phoneIdx = cursor.getColumnIndex(ContactsContract.CommonDataKinds.Phone.NUMBER)
             while (cursor.moveToNext()) {
-                results.add(
-                    Contact(
-                        id = cursor.getString(idIdx),
-                        name = cursor.getString(nameIdx),
-                        phone = cursor.getString(phoneIdx)
-                    )
-                )
+                results.add(Contact(cursor.getString(idIdx), cursor.getString(nameIdx), cursor.getString(phoneIdx)))
             }
         }
         return results
     }
 
     private fun initiateCall(contact: Contact) {
-        val callIntent = Intent(Intent.ACTION_CALL).apply {
-            data = Uri.parse("tel:${contact.phone}")
+        val intent = Intent(Intent.ACTION_CALL).apply {
+            data  = Uri.parse("tel:${contact.phone}")
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
-        context.startActivity(callIntent)
+        context.startActivity(intent)
         memory.trackContactCall(contact)
         ContextEngine.updateContact(contact)
     }
 
     // ─── Alarm Creation ────────────────────────────────────────────────────
     private fun setAlarm(params: Map<String, String>): ExecutionResult {
-        val hour = params["hour"]?.toIntOrNull()
+        val hour   = params["hour"]?.toIntOrNull()
+            ?: return ExecutionResult.Failure("I didn't catch the time. What time should I set the alarm for?")
         val minute = params["minute"]?.toIntOrNull() ?: 0
-        val label = params["label"] ?: "JAVIS Alarm"
-
-        if (hour == null) {
-            return ExecutionResult.Failure("I didn't catch the time. What time should I set the alarm for?")
-        }
+        val label  = params["label"] ?: "JAVIS Alarm"
 
         return try {
             val intent = Intent(AlarmClock.ACTION_SET_ALARM).apply {
@@ -155,13 +144,34 @@ class ExecutionEngine(private val context: Context) {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK
             }
             context.startActivity(intent)
-
-            val amPm = if (hour < 12) "AM" else "PM"
-            val displayHour = if (hour == 0) 12 else if (hour > 12) hour - 12 else hour
-            val displayMinute = minute.toString().padStart(2, '0')
-            ExecutionResult.Success("Alarm set for $displayHour:$displayMinute $amPm.")
+            val amPm         = if (hour < 12) "AM" else "PM"
+            val displayHour  = if (hour == 0) 12 else if (hour > 12) hour - 12 else hour
+            val displayMin   = minute.toString().padStart(2, '0')
+            ExecutionResult.Success("Alarm set for $displayHour:$displayMin $amPm.")
         } catch (e: Exception) {
             ExecutionResult.Failure("I wasn't able to set the alarm. Please check your alarm app permissions.")
+        }
+    }
+
+    // ─── Clear Missed Calls ────────────────────────────────────────────────
+    private suspend fun clearMissedCalls(): ExecutionResult = withContext(Dispatchers.IO) {
+        return@withContext try {
+            val values = ContentValues().apply { put(CallLog.Calls.IS_READ, 1) }
+            val rows = context.contentResolver.update(
+                CallLog.Calls.CONTENT_URI,
+                values,
+                "${CallLog.Calls.TYPE} = ? AND ${CallLog.Calls.IS_READ} = ?",
+                arrayOf(CallLog.Calls.MISSED_TYPE.toString(), "0")
+            )
+            if (rows > 0) {
+                ExecutionResult.Success("Done. $rows missed ${if (rows == 1) "call" else "calls"} marked as read.")
+            } else {
+                ExecutionResult.Success("No unread missed calls to clear.")
+            }
+        } catch (e: SecurityException) {
+            ExecutionResult.Failure("I need call log permission to do that. Please grant it in settings.")
+        } catch (e: Exception) {
+            ExecutionResult.Failure("I couldn't clear the missed calls: ${e.message}")
         }
     }
 
@@ -171,7 +181,7 @@ class ExecutionEngine(private val context: Context) {
             "user_name" -> {
                 val name = memory.getUserName()
                 if (name != null) ExecutionResult.Success("Your name is $name.")
-                else ExecutionResult.Failure("I don't have your name stored yet. You can tell me by saying 'My name is...'")
+                else ExecutionResult.Failure("I don't have your name stored yet. Tell me by saying 'My name is...'")
             }
             "user_nickname" -> {
                 val nick = memory.getNickname()
@@ -187,13 +197,11 @@ class ExecutionEngine(private val context: Context) {
     }
 
     private suspend fun updateMemory(params: Map<String, String>): ExecutionResult {
-        val key = params["key"] ?: return ExecutionResult.Failure("I couldn't understand what to remember.")
+        val key   = params["key"]   ?: return ExecutionResult.Failure("I couldn't understand what to remember.")
         val value = params["value"] ?: return ExecutionResult.Failure("I couldn't understand the value to remember.")
-
         if (key == "user_name") memory.setUserName(value)
         else if (key == "user_nickname") memory.setNickname(value)
         else memory.remember(key, value)
-
         return ExecutionResult.Success("Got it. I've saved that to memory.")
     }
 }
