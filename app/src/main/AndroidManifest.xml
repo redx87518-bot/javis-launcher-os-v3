@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Core permissions -->
+    <!-- Core -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
@@ -13,8 +13,9 @@
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Unlock briefing + clear missed calls -->
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
-    <!-- Unlock briefing: missed calls + unread SMS -->
+    <uses-permission android:name="android.permission.WRITE_CALL_LOG" />
     <uses-permission android:name="android.permission.READ_SMS" />
 
     <application
@@ -41,39 +42,32 @@
             </intent-filter>
         </activity>
 
-        <!-- CHAT / VOICE ACTIVITY -->
         <activity
             android:name=".ui.chat.ChatActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
-        <!-- VOICE CONVERSATION ACTIVITY -->
         <activity
             android:name=".ui.voice.VoiceActivity"
             android:exported="false"
             android:theme="@style/Theme.JAVIS.Voice" />
 
-        <!-- MEMORY ACTIVITY -->
         <activity
             android:name=".ui.memory.MemoryActivity"
             android:exported="false" />
 
-        <!-- CONTACTS ACTIVITY -->
         <activity
             android:name=".ui.contacts.ContactsActivity"
             android:exported="false" />
 
-        <!-- ALARMS ACTIVITY -->
         <activity
             android:name=".ui.alarms.AlarmsActivity"
             android:exported="false" />
 
-        <!-- SETTINGS ACTIVITY -->
         <activity
             android:name=".ui.settings.SettingsActivity"
             android:exported="false" />
 
-        <!-- VOICE DIAGNOSTICS ACTIVITY -->
         <activity
             android:name=".ui.voice.VoiceDiagnosticsActivity"
             android:exported="false" />
