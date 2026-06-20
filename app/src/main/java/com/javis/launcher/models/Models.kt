@@ -41,6 +41,16 @@ data class ContactUsage(
     val lastCalled: Long = System.currentTimeMillis()
 )
 
+// ─── Command Log (new in V4) ───────────────────────────────────────────────
+@Entity(tableName = "command_log")
+data class CommandLog(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val action: String,          // e.g. "Open App", "Set Alarm"
+    val detail: String = "",     // e.g. "WhatsApp", "7:00 AM"
+    val result: String = "",     // e.g. "✓ Success", "✗ Failed"
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 // ─── Alarm ─────────────────────────────────────────────────────────────────
 data class AlarmInfo(
     val id: Int,
@@ -96,13 +106,14 @@ enum class JavisAction {
     UNKNOWN
 }
 
-// ─── Context State ─────────────────────────────────────────────────────────
+// ─── Context State (V4: added currentGoal) ────────────────────────────────
 data class ConversationContext(
     var lastContact: Contact? = null,
     var lastApp: InstalledApp? = null,
     var lastAction: JavisAction? = null,
-    var lastTopic: String? = null
+    var lastTopic: String? = null,
+    var currentGoal: String? = null      // e.g. "Plan a trip" across multiple turns
 )
 
-// ─── Voice Engine State ────────────────────────────────────────────────────
+// ─── Voice State ──────────────────────────────────────────────────────────
 enum class VoiceState { IDLE, LISTENING, THINKING, SPEAKING, EXECUTING, COMPLETED, ERROR }
