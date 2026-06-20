@@ -12,56 +12,55 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.javis.launcher.JavisApplication
 import com.javis.launcher.R
+import com.javis.launcher.engine.ThinkingEngine
 import com.javis.launcher.engine.ai.AIEngine
+import com.javis.launcher.engine.context.ContextEngine
 import com.javis.launcher.engine.execution.ExecutionEngine
 import com.javis.launcher.engine.execution.ExecutionResult
-import com.javis.launcher.engine.intent.IntentAnalyzer
-import com.javis.launcher.models.JavisAction
 import kotlinx.coroutines.launch
 
 class ChatActivity : AppCompatActivity() {
 
     private val memory get() = JavisApplication.instance.memoryEngine
-    private val voice get() = JavisApplication.instance.voiceEngine
+    private val voice  get() = JavisApplication.instance.voiceEngine
     private lateinit var ai: AIEngine
     private lateinit var execution: ExecutionEngine
     private lateinit var adapter: ChatAdapter
     private val messages = mutableListOf<ChatMessage>()
 
-    private lateinit var rvChat: RecyclerView
-    private lateinit var etInput: EditText
-    private lateinit var btnSend: ImageButton
+    private lateinit var rvChat:    RecyclerView
+    private lateinit var etInput:   EditText
+    private lateinit var btnSend:   ImageButton
     private lateinit var tvProvider: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
 
-        rvChat = findViewById(R.id.rv_chat)
-        etInput = findViewById(R.id.et_input)
-        btnSend = findViewById(R.id.btn_send)
+        rvChat    = findViewById(R.id.rv_chat)
+        etInput   = findViewById(R.id.et_input)
+        btnSend   = findViewById(R.id.btn_send)
         tvProvider = findViewById(R.id.tv_provider)
 
-        ai = AIEngine(this)
+        ai        = AIEngine(this)
         execution = ExecutionEngine(this)
 
         adapter = ChatAdapter(messages)
         rvChat.layoutManager = LinearLayoutManager(this).apply { stackFromEnd = true }
         rvChat.adapter = adapter
 
-        // Load history
+        // V4: load up to 50 recent messages for context
         lifecycleScope.launch {
-            val history = memory.getRecentHistory(20)
+            val history = memory.getRecentHistory(50)
             history.forEach { msg ->
                 messages.add(ChatMessage(msg.content, msg.role == "user"))
             }
             adapter.notifyDataSetChanged()
-            rvChat.scrollToPosition(messages.size - 1)
+            if (messages.isNotEmpty()) rvChat.scrollToPosition(messages.size - 1)
         }
 
-        // Provider status
         val provider = ai.getActiveProvider()
-        tvProvider.text = if (provider != null) "AI: ${provider.name}" else "AI: Not configured"
+        tvProvider.text = if (provider != null) "AI: ${provider.name}" else "AI: Not configured — go to Settings"
 
         btnSend.setOnClickListener { sendMessage() }
         etInput.setOnKeyListener { _, keyCode, event ->
@@ -79,20 +78,37 @@ class ChatActivity : AppCompatActivity() {
         etInput.text.clear()
 
         addMessage(text, isUser = true)
+
         lifecycleScope.launch {
             memory.saveMessage("user", text)
+            ContextEngine.inferAndUpdateGoal(text)
 
-            val intent = IntentAnalyzer.analyze(text)
-            val response = if (intent.action == JavisAction.CHAT || intent.action == JavisAction.UNKNOWN) {
-                val history = memory.getRecentHistory(10)
-                ai.chat(text, history)
-            } else {
-                when (val result = execution.execute(intent)) {
-                    is ExecutionResult.Success -> result.message
-                    is ExecutionResult.NeedsConfirmation -> result.message
-                    is ExecutionResult.Failure -> if (result.message == "CHAT") {
-                        ai.chat(text, memory.getRecentHistory(10))
-                    } else result.message
+            val thought = ThinkingEngine.think(text)
+            ContextEngine.updateAction(thought.intentResult.action)
+
+            val response: String = when (thought.category) {
+                ThinkingEngine.Category.LOCAL_ACTION -> {
+                    val result = execution.execute(thought.intentResult)
+                    when (result) {
+                        is ExecutionResult.Success           -> result.message
+                        is ExecutionResult.NeedsConfirmation -> result.message
+                        is ExecutionResult.Failure           ->
+                            if (result.message == "CHAT") {
+                                val history = memory.getRecentHistory(50)
+                                ai.chat(thought.enrichedPrompt ?: text, history)
+                            } else result.message
+                    }
+                }
+                ThinkingEngine.Category.MEMORY_QUERY -> {
+                    val result = execution.execute(thought.intentResult)
+                    (result as? ExecutionResult.Success)?.message
+                        ?: (result as? ExecutionResult.Failure)?.message
+                        ?: "I don't have that stored."
+                }
+                ThinkingEngine.Category.AI_CONVERSATION,
+                ThinkingEngine.Category.HYBRID -> {
+                    val history = memory.getRecentHistory(50)
+                    ai.chat(thought.enrichedPrompt ?: text, history)
                 }
             }
 
