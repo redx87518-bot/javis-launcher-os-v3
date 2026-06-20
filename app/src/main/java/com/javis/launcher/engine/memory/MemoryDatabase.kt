@@ -2,10 +2,7 @@ package com.javis.launcher.engine.memory
 
 import android.content.Context
 import androidx.room.*
-import com.javis.launcher.models.AppUsage
-import com.javis.launcher.models.ContactUsage
-import com.javis.launcher.models.ConversationMessage
-import com.javis.launcher.models.Memory
+import com.javis.launcher.models.*
 
 @Dao
 interface MemoryDao {
@@ -31,7 +28,7 @@ interface MemoryDao {
 @Dao
 interface ConversationDao {
     @Query("SELECT * FROM conversations ORDER BY timestamp DESC LIMIT :limit")
-    suspend fun getRecent(limit: Int = 50): List<ConversationMessage>
+    suspend fun getRecent(limit: Int = 100): List<ConversationMessage>
 
     @Insert
     suspend fun insert(message: ConversationMessage)
@@ -64,9 +61,22 @@ interface ContactUsageDao {
     suspend fun insert(usage: ContactUsage)
 }
 
+// V4: Command log DAO
+@Dao
+interface CommandLogDao {
+    @Query("SELECT * FROM command_log ORDER BY timestamp DESC LIMIT :limit")
+    suspend fun getRecent(limit: Int = 100): List<CommandLog>
+
+    @Insert
+    suspend fun insert(log: CommandLog)
+
+    @Query("DELETE FROM command_log WHERE timestamp < :before")
+    suspend fun deleteOlderThan(before: Long)
+}
+
 @Database(
-    entities = [Memory::class, ConversationMessage::class, AppUsage::class, ContactUsage::class],
-    version = 1,
+    entities = [Memory::class, ConversationMessage::class, AppUsage::class, ContactUsage::class, CommandLog::class],
+    version = 2,          // bumped for V4 CommandLog table
     exportSchema = false
 )
 abstract class MemoryDatabase : RoomDatabase() {
@@ -74,14 +84,21 @@ abstract class MemoryDatabase : RoomDatabase() {
     abstract fun conversationDao(): ConversationDao
     abstract fun appUsageDao(): AppUsageDao
     abstract fun contactUsageDao(): ContactUsageDao
+    abstract fun commandLogDao(): CommandLogDao
 
     companion object {
         @Volatile private var INSTANCE: MemoryDatabase? = null
+
         fun getInstance(context: Context): MemoryDatabase {
             return INSTANCE ?: synchronized(this) {
-                Room.databaseBuilder(context.applicationContext, MemoryDatabase::class.java, "javis_memory.db")
-                    .fallbackToDestructiveMigration()
-                    .build().also { INSTANCE = it }
+                Room.databaseBuilder(
+                    context.applicationContext,
+                    MemoryDatabase::class.java,
+                    "javis_memory.db"
+                )
+                .fallbackToDestructiveMigration()  // safe — user re-enters API key, memories rebuild
+                .build()
+                .also { INSTANCE = it }
             }
         }
     }
