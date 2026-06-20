@@ -228,12 +228,15 @@ class HomeActivity : AppCompatActivity() {
     override fun onBackPressed() { /* Launcher never exits on back */ }
 
     // ─── System helpers ───────────────────────────────────────────────────
-    private fun getBatteryLevel(): Int = try {
-        val intent = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED)) ?: return -1
-        val level  = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
-        val scale  = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
-        if (level >= 0 && scale > 0) level * 100 / scale else -1
-    } catch (e: Exception) { -1 }
+    private fun getBatteryLevel(): Int {
+        return try {
+            val intent = registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+                ?: return -1
+            val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+            val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+            if (level >= 0 && scale > 0) level * 100 / scale else -1
+        } catch (e: Exception) { -1 }
+    }
 
     private fun getMissedCallCount(): Int {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALL_LOG)
