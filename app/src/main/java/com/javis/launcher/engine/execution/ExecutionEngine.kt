@@ -9,6 +9,8 @@ import android.provider.AlarmClock
 import android.provider.CallLog
 import android.provider.ContactsContract
 import com.javis.launcher.JavisApplication
+import com.javis.launcher.engine.PersonalityEngine
+import com.javis.launcher.engine.RoutineLearningEngine
 import com.javis.launcher.engine.context.ContextEngine
 import com.javis.launcher.models.*
 import kotlinx.coroutines.Dispatchers
@@ -32,7 +34,9 @@ class ExecutionEngine(private val context: Context) {
             JavisAction.QUERY_MEMORY       -> queryMemory(intent.params["key"] ?: "")
             JavisAction.UPDATE_MEMORY      -> updateMemory(intent.params)
             JavisAction.CLEAR_MISSED_CALLS -> clearMissedCalls()
-            JavisAction.OPEN_SETTINGS      -> {
+            JavisAction.SWITCH_PERSONALITY -> switchPersonality(intent.params["mode"] ?: "JARVIS")
+            JavisAction.ROUTINE_QUERY      -> routineQuery()
+            JavisAction.OPEN_SETTINGS -> {
                 val i = Intent(android.provider.Settings.ACTION_SETTINGS)
                     .apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
                 context.startActivity(i)
@@ -42,16 +46,17 @@ class ExecutionEngine(private val context: Context) {
             JavisAction.UNKNOWN -> ExecutionResult.Failure("I'm not sure what you meant. Could you clarify?")
         }
 
-        // Log every execution to the Command Center
-        val actionLabel = intent.action.name.replace("_", " ").lowercase()
-            .replaceFirstChar { it.uppercase() }
-        val detail = intent.params.values.firstOrNull() ?: ""
-        val resultLabel = when (result) {
-            is ExecutionResult.Success -> "✓ ${result.message.take(40)}"
-            is ExecutionResult.Failure -> if (result.message == "CHAT") "" else "✗ ${result.message.take(40)}"
-            is ExecutionResult.NeedsConfirmation -> "⚠ Needs input"
-        }
+        // Log to Command Center (skip CHAT routing noise)
         if (intent.action != JavisAction.CHAT) {
+            val actionLabel = intent.action.name.replace("_", " ").lowercase()
+                .replaceFirstChar { it.uppercase() }
+            val detail = intent.params.values.firstOrNull() ?: ""
+            val resultLabel = when (result) {
+                is ExecutionResult.Success           -> "✓ ${result.message.take(40)}"
+                is ExecutionResult.Failure           ->
+                    if (result.message == "CHAT") "" else "✗ ${result.message.take(40)}"
+                is ExecutionResult.NeedsConfirmation -> "⚠ Needs input"
+            }
             memory.logCommand(actionLabel, detail, resultLabel)
         }
 
@@ -105,7 +110,7 @@ class ExecutionEngine(private val context: Context) {
             else -> {
                 val names = contacts.take(3).mapIndexed { i, c -> "${i + 1}. ${c.name}" }
                 ExecutionResult.NeedsConfirmation(
-                    "I found ${contacts.size} contacts named \"$name\". Which one would you like?",
+                    "I found ${contacts.size} contacts named \"$name\". Which one?",
                     names
                 )
             }
@@ -149,14 +154,13 @@ class ExecutionEngine(private val context: Context) {
         ContextEngine.updateContact(contact)
     }
 
-    // ─── Alarm Creation (V4: verify before claiming success) ───────────────
+    // ─── Alarm Creation (verify before reporting success) ──────────────────
     private fun setAlarm(params: Map<String, String>): ExecutionResult {
         val hour = params["hour"]?.toIntOrNull()
-            ?: return ExecutionResult.Failure("I didn't catch the time. What time should I set the alarm for?")
+            ?: return ExecutionResult.Failure("What time should I set the alarm for?")
         val minute = params["minute"]?.toIntOrNull() ?: 0
         val label  = params["label"] ?: "JAVIS Alarm"
 
-        // V4: Verify an alarm app exists before trying to send the intent
         val alarmIntent = Intent(AlarmClock.ACTION_SET_ALARM).apply {
             putExtra(AlarmClock.EXTRA_HOUR, hour)
             putExtra(AlarmClock.EXTRA_MINUTES, minute)
@@ -170,7 +174,7 @@ class ExecutionEngine(private val context: Context) {
 
         if (resolvedActivity == null) {
             return ExecutionResult.Failure(
-                "I couldn't find a clock app to set the alarm. Please make sure a clock app is installed."
+                "I couldn't find a clock app to set the alarm. Please install one."
             )
         }
 
@@ -199,10 +203,34 @@ class ExecutionEngine(private val context: Context) {
             else
                 ExecutionResult.Success("No unread missed calls to clear.")
         } catch (e: SecurityException) {
-            ExecutionResult.Failure("I need call log permission for that. Please grant it in Settings.")
+            ExecutionResult.Failure("I need call log permission for that.")
         } catch (e: Exception) {
-            ExecutionResult.Failure("I couldn't clear the missed calls: ${e.message}")
+            ExecutionResult.Failure("Couldn't clear missed calls: ${e.message}")
         }
+    }
+
+    // ─── Personality Switching (V4) ────────────────────────────────────────
+    private fun switchPersonality(mode: String): ExecutionResult {
+        val newMode = when (mode.uppercase()) {
+            "PROFESSIONAL" -> PersonalityEngine.Mode.PROFESSIONAL
+            "FRIENDLY"     -> PersonalityEngine.Mode.FRIENDLY
+            else           -> PersonalityEngine.Mode.JARVIS
+        }
+        PersonalityEngine.currentMode = newMode
+        JavisApplication.instance.voiceEngine.refreshPersonality()
+
+        val confirm = when (newMode) {
+            PersonalityEngine.Mode.JARVIS        -> "JARVIS mode activated. Formal protocols engaged, Sir."
+            PersonalityEngine.Mode.PROFESSIONAL  -> "Switching to Professional mode. Let's get things done."
+            PersonalityEngine.Mode.FRIENDLY      -> "Friendly mode on! Happy to chat anytime."
+        }
+        return ExecutionResult.Success(confirm)
+    }
+
+    // ─── Routine Query (V4) ────────────────────────────────────────────────
+    private suspend fun routineQuery(): ExecutionResult {
+        val briefing = RoutineLearningEngine.getMorningBriefing(memory)
+        return ExecutionResult.Success(briefing)
     }
 
     // ─── Memory Operations ─────────────────────────────────────────────────
@@ -211,12 +239,12 @@ class ExecutionEngine(private val context: Context) {
             "user_name" -> {
                 val name = memory.getUserName()
                 if (name != null) ExecutionResult.Success("Your name is $name.")
-                else ExecutionResult.Failure("I don't have your name stored yet. You can tell me by saying 'My name is...'")
+                else ExecutionResult.Failure("I don't have your name stored yet.")
             }
             "user_nickname" -> {
                 val nick = memory.getNickname()
                 if (nick != null) ExecutionResult.Success("I call you $nick.")
-                else ExecutionResult.Failure("I don't have a nickname stored for you.")
+                else ExecutionResult.Failure("I don't have a nickname for you yet.")
             }
             else -> {
                 val value = memory.recall(key)
