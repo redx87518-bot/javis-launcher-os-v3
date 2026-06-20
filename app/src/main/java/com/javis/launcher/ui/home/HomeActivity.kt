@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.BatteryManager
 import android.os.Bundle
-import android.provider.CallLog
 import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -18,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.javis.launcher.JavisApplication
 import com.javis.launcher.R
 import com.javis.launcher.engine.PersonalityEngine
+import com.javis.launcher.engine.RoutineLearningEngine
 import com.javis.launcher.receivers.UnlockReceiver
 import com.javis.launcher.ui.alarms.AlarmsActivity
 import com.javis.launcher.ui.chat.ChatActivity
@@ -38,14 +38,14 @@ class HomeActivity : AppCompatActivity() {
     private val memory get() = JavisApplication.instance.memoryEngine
     private val voice  get() = JavisApplication.instance.voiceEngine
 
-    private lateinit var tvGreeting:     TextView
-    private lateinit var tvTime:         TextView
-    private lateinit var tvDate:         TextView
-    private lateinit var tvStatusLine:   TextView
-    private lateinit var rvFavoriteApps: RecyclerView
+    private lateinit var tvGreeting:      TextView
+    private lateinit var tvTime:          TextView
+    private lateinit var tvDate:          TextView
+    private lateinit var tvStatusLine:    TextView
+    private lateinit var rvFavoriteApps:  RecyclerView
     private lateinit var tvProviderStatus: TextView
 
-    private val unlockReceiver = UnlockReceiver()
+    private val unlockReceiver  = UnlockReceiver()
     private var receiverRegistered = false
     private var lastGreetedAtMs = 0L
 
@@ -53,18 +53,15 @@ class HomeActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
 
-        tvGreeting      = findViewById(R.id.tv_greeting)
-        tvTime          = findViewById(R.id.tv_time)
-        tvDate          = findViewById(R.id.tv_date)
-        tvStatusLine    = findViewById(R.id.tv_status_line)
-        rvFavoriteApps  = findViewById(R.id.rv_favorite_apps)
+        tvGreeting       = findViewById(R.id.tv_greeting)
+        tvTime           = findViewById(R.id.tv_time)
+        tvDate           = findViewById(R.id.tv_date)
+        tvStatusLine     = findViewById(R.id.tv_status_line)
+        rvFavoriteApps   = findViewById(R.id.rv_favorite_apps)
         tvProviderStatus = findViewById(R.id.tv_provider_status)
 
         setupClock()
-        setupGreeting()
-        setupFavoriteApps()
         setupNavButtons()
-        updateProviderBadge()
     }
 
     override fun onStart() {
@@ -85,13 +82,13 @@ class HomeActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        setupGreeting()
-        setupFavoriteApps()
+        refreshGreeting()
+        loadFavoriteApps()
         updateProviderBadge()
         maybeDeliverUnlockGreeting()
     }
 
-    // ─── Unlock greeting (V4: PersonalityEngine) ──────────────────────────
+    // ─── Unlock greeting ──────────────────────────────────────────────────
     private fun maybeDeliverUnlockGreeting() {
         val now = System.currentTimeMillis()
         if (now - lastGreetedAtMs < 2 * 60 * 1000L) return
@@ -100,21 +97,17 @@ class HomeActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             delay(600)
-            val greeting = buildUnlockGreeting()
+            val name      = memory.getNickname() ?: memory.getUserName()
+            val battery   = getBatteryLevel()
+            val missed    = getMissedCallCount()
+            val unreadSms = getUnreadSmsCount()
+            val greeting  = PersonalityEngine.welcomeMessage(name, battery, missed, unreadSms)
             tvStatusLine.text = greeting
             if (voice.isReady()) voice.speak(greeting)
         }
     }
 
-    private suspend fun buildUnlockGreeting(): String = withContext(Dispatchers.IO) {
-        val name       = memory.getNickname() ?: memory.getUserName()
-        val battery    = getBatteryLevel()
-        val missed     = getMissedCallCount()
-        val unreadSms  = getUnreadSmsCount()
-        PersonalityEngine.welcomeMessage(name, battery, missed, unreadSms)
-    }
-
-    // ─── Provider status badge ─────────────────────────────────────────────
+    // ─── Provider badge ───────────────────────────────────────────────────
     private fun updateProviderBadge() {
         val ai = com.javis.launcher.engine.ai.AIEngine(this)
         val provider = ai.getActiveProvider()
@@ -123,7 +116,7 @@ class HomeActivity : AppCompatActivity() {
 
     // ─── Clock ────────────────────────────────────────────────────────────
     private fun setupClock() {
-        val timer = object : Runnable {
+        val tick = object : Runnable {
             override fun run() {
                 val now     = Calendar.getInstance()
                 val timeFmt = SimpleDateFormat("hh:mm", Locale.getDefault())
@@ -134,14 +127,14 @@ class HomeActivity : AppCompatActivity() {
                 tvTime.postDelayed(this, 30_000)
             }
         }
-        tvTime.post(timer)
+        tvTime.post(tick)
     }
 
-    // ─── Greeting text ───────────────────────────────────────────────────
-    private fun setupGreeting() {
+    // ─── Greeting & routine suggestion ───────────────────────────────────
+    private fun refreshGreeting() {
         lifecycleScope.launch {
-            val name = memory.getNickname() ?: memory.getUserName()
-            val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+            val name  = memory.getNickname() ?: memory.getUserName()
+            val hour  = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
             val greet = when {
                 hour < 12 -> "Good morning"
                 hour < 17 -> "Good afternoon"
@@ -154,9 +147,10 @@ class HomeActivity : AppCompatActivity() {
             }
             tvGreeting.text = "$greet$address."
 
-            val topApps = memory.getTopApps(1)
-            tvStatusLine.text = if (topApps.isNotEmpty()) {
-                "You often open ${topApps.first().appName} around this time."
+            // Routine learning suggestion as status line
+            val suggestions = RoutineLearningEngine.getSuggestions(memory, this@HomeActivity)
+            tvStatusLine.text = if (suggestions.isNotEmpty()) {
+                suggestions.first().text
             } else {
                 "All systems operational. How can I help?"
             }
@@ -164,11 +158,12 @@ class HomeActivity : AppCompatActivity() {
     }
 
     // ─── Favourite apps grid ──────────────────────────────────────────────
-    private fun setupFavoriteApps() {
+    private fun loadFavoriteApps() {
         lifecycleScope.launch {
             val topApps = memory.getTopApps(8)
             val pm = packageManager
-            val appItems = if (topApps.isNotEmpty()) {
+
+            val appItems: List<Pair<String, String>> = if (topApps.isNotEmpty()) {
                 topApps.mapNotNull { usage ->
                     try {
                         val info = pm.getApplicationInfo(usage.packageName, 0)
@@ -176,10 +171,10 @@ class HomeActivity : AppCompatActivity() {
                     } catch (e: Exception) { null }
                 }
             } else {
+                // Fallback: common default apps
                 listOf(
                     "com.whatsapp", "com.android.chrome",
-                    "com.google.android.youtube", "com.instagram.android",
-                    "com.twitter.android", "com.spotify.music"
+                    "com.google.android.youtube", "com.instagram.android"
                 ).mapNotNull { pkg ->
                     try {
                         val info = pm.getApplicationInfo(pkg, 0)
@@ -190,10 +185,19 @@ class HomeActivity : AppCompatActivity() {
 
             rvFavoriteApps.layoutManager = GridLayoutManager(this@HomeActivity, 4)
             rvFavoriteApps.adapter = FavoriteAppsAdapter(appItems) { pkg ->
-                pm.getLaunchIntentForPackage(pkg)?.also {
-                    it.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-                    startActivity(it)
-                    memory.trackAppOpen(pkg, pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString())
+                // Bug fix: wrap in try-catch — app may be uninstalled between listing and tap
+                try {
+                    val launchIntent = pm.getLaunchIntentForPackage(pkg)
+                    if (launchIntent != null) {
+                        launchIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                        startActivity(launchIntent)
+                        val appName = try {
+                            pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
+                        } catch (e: Exception) { pkg }
+                        memory.trackAppOpen(pkg, appName)
+                    }
+                } catch (e: Exception) {
+                    // App uninstalled or unavailable — silently ignore
                 }
             }
         }
@@ -219,7 +223,6 @@ class HomeActivity : AppCompatActivity() {
         findViewById<View>(R.id.btn_settings).setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
-        // V4: Command Center log button
         findViewById<View>(R.id.btn_command_center).setOnClickListener {
             startActivity(Intent(this, CommandCenterActivity::class.java))
         }
@@ -243,10 +246,10 @@ class HomeActivity : AppCompatActivity() {
             != PackageManager.PERMISSION_GRANTED) return 0
         return try {
             val cursor = contentResolver.query(
-                CallLog.Calls.CONTENT_URI,
-                arrayOf(CallLog.Calls._ID),
-                "${CallLog.Calls.TYPE} = ? AND ${CallLog.Calls.IS_READ} = ?",
-                arrayOf(CallLog.Calls.MISSED_TYPE.toString(), "0"), null
+                android.provider.CallLog.Calls.CONTENT_URI,
+                arrayOf(android.provider.CallLog.Calls._ID),
+                "${android.provider.CallLog.Calls.TYPE} = ? AND ${android.provider.CallLog.Calls.IS_READ} = ?",
+                arrayOf(android.provider.CallLog.Calls.MISSED_TYPE.toString(), "0"), null
             )
             val count = cursor?.count ?: 0
             cursor?.close()
