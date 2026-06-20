@@ -12,7 +12,7 @@ class MemoryEngine(private val context: Context) {
     private val db = MemoryDatabase.getInstance(context)
     private val scope = CoroutineScope(Dispatchers.IO)
 
-    // ─── Store a key-value memory ──────────────────────────────────────────
+    // ─── Key-Value Memory ──────────────────────────────────────────────────
     fun remember(key: String, value: String, category: String = "general") {
         scope.launch {
             db.memoryDao().insert(Memory(key = key, value = value, category = category))
@@ -35,21 +35,22 @@ class MemoryEngine(private val context: Context) {
         scope.launch { db.memoryDao().deleteByKey(key) }
     }
 
-    // ─── Conversation History ──────────────────────────────────────────────
+    // ─── Conversation History (V4: up to 100 messages) ─────────────────────
     fun saveMessage(role: String, content: String) {
         scope.launch {
             db.conversationDao().insert(ConversationMessage(role = role, content = content))
-            // Keep last 7 days only
-            val cutoff = System.currentTimeMillis() - 7 * 24 * 60 * 60 * 1000L
+            // Keep last 30 days
+            val cutoff = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000L
             db.conversationDao().deleteOlderThan(cutoff)
         }
     }
 
-    suspend fun getRecentHistory(limit: Int = 20): List<ConversationMessage> = withContext(Dispatchers.IO) {
-        db.conversationDao().getRecent(limit).reversed()
-    }
+    suspend fun getRecentHistory(limit: Int = 50): List<ConversationMessage> =
+        withContext(Dispatchers.IO) {
+            db.conversationDao().getRecent(limit).reversed()
+        }
 
-    // ─── App Usage Tracking ────────────────────────────────────────────────
+    // ─── App Usage ─────────────────────────────────────────────────────────
     fun trackAppOpen(packageName: String, appName: String) {
         scope.launch {
             val existing = db.appUsageDao().getApp(packageName)
@@ -63,7 +64,7 @@ class MemoryEngine(private val context: Context) {
         db.appUsageDao().getTopApps(limit)
     }
 
-    // ─── Contact Usage Tracking ────────────────────────────────────────────
+    // ─── Contact Usage ─────────────────────────────────────────────────────
     fun trackContactCall(contact: Contact) {
         scope.launch {
             val existing = db.contactUsageDao().getContact(contact.id)
@@ -77,7 +78,21 @@ class MemoryEngine(private val context: Context) {
         db.contactUsageDao().getTopContacts(limit)
     }
 
-    // ─── User Identity Shortcuts ───────────────────────────────────────────
+    // ─── Command Log (V4) ──────────────────────────────────────────────────
+    fun logCommand(action: String, detail: String = "", result: String = "") {
+        scope.launch {
+            db.commandLogDao().insert(CommandLog(action = action, detail = detail, result = result))
+            // Keep last 7 days of logs
+            val cutoff = System.currentTimeMillis() - 7L * 24 * 60 * 60 * 1000L
+            db.commandLogDao().deleteOlderThan(cutoff)
+        }
+    }
+
+    suspend fun getCommandLogs(limit: Int = 100): List<CommandLog> = withContext(Dispatchers.IO) {
+        db.commandLogDao().getRecent(limit)
+    }
+
+    // ─── User Identity ─────────────────────────────────────────────────────
     fun setUserName(name: String) = remember("user_name", name, "identity")
     suspend fun getUserName(): String? = recall("user_name")
     fun setNickname(nick: String) = remember("user_nickname", nick, "identity")
