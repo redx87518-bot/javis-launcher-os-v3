@@ -6,12 +6,18 @@ import android.os.Handler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import com.javis.launcher.engine.PersonalityEngine
 import java.util.Locale
 import java.util.UUID
 
+/**
+ * V4 VoiceEngine — Text-to-Speech with personality modes.
+ *
+ * Provider priority: Kokoro TTS (if installed) → higher-quality Android voice → standard Android TTS
+ *
+ * All TTS callbacks are posted to the main thread — safe to update UI directly.
+ */
 class VoiceEngine(private val context: Context) : TextToSpeech.OnInitListener {
-
-    enum class TtsProvider { KOKORO_ONLINE, ANDROID_TTS }
 
     private var tts: TextToSpeech? = null
     private var ttsReady = false
@@ -19,14 +25,15 @@ class VoiceEngine(private val context: Context) : TextToSpeech.OnInitListener {
 
     var onSpeakingStart: (() -> Unit)? = null
     var onSpeakingEnd: (() -> Unit)? = null
-    var currentProvider = TtsProvider.ANDROID_TTS
 
     init {
-        initAndroidTTS()
+        initTTS()
     }
 
-    private fun initAndroidTTS() {
-        tts = TextToSpeech(context, this)
+    private fun initTTS() {
+        // Try Kokoro TTS engine first (user must install "Kokoro TTS" from Play Store)
+        // If not installed, Android falls back to its built-in engine automatically
+        tts = TextToSpeech(context, this, "dev.kokoro.tts")
     }
 
     override fun onInit(status: Int) {
@@ -35,28 +42,63 @@ class VoiceEngine(private val context: Context) : TextToSpeech.OnInitListener {
                 val result = t.setLanguage(Locale.US)
                 if (result != TextToSpeech.LANG_MISSING_DATA && result != TextToSpeech.LANG_NOT_SUPPORTED) {
                     ttsReady = true
-                    // Prefer a male-sounding voice if the device has one
-                    val voices = t.voices
-                    val maleVoice = voices?.firstOrNull { v ->
-                        v.locale == Locale.US && v.name.lowercase().let {
-                            it.contains("male") || it.contains("en-us-x-sfg") || it.contains("en-us-x-tpd")
+                    applyPersonalityVoice(t)
+                }
+            }
+        } else {
+            // Kokoro not available — fall back to default engine
+            tts?.shutdown()
+            tts = TextToSpeech(context, object : TextToSpeech.OnInitListener {
+                override fun onInit(fallbackStatus: Int) {
+                    if (fallbackStatus == TextToSpeech.SUCCESS) {
+                        tts?.let { t ->
+                            val r = t.setLanguage(Locale.US)
+                            if (r != TextToSpeech.LANG_MISSING_DATA && r != TextToSpeech.LANG_NOT_SUPPORTED) {
+                                ttsReady = true
+                                applyPersonalityVoice(t)
+                            }
                         }
                     }
-                    maleVoice?.let { t.voice = it }
-                    t.setSpeechRate(0.95f)
-                    t.setPitch(0.85f)
                 }
+            })
+        }
+    }
+
+    private fun applyPersonalityVoice(t: TextToSpeech) {
+        // Prefer a deep male voice
+        val voices = t.voices
+        val preferredVoice = voices?.firstOrNull { v ->
+            v.locale == Locale.US && v.name.lowercase().let { n ->
+                n.contains("male") || n.contains("en-us-x-sfg") ||
+                n.contains("en-us-x-tpd") || n.contains("en-us-x-tpc")
+            }
+        } ?: voices?.firstOrNull { v ->
+            v.locale == Locale.US && !v.name.lowercase().contains("female")
+        }
+        preferredVoice?.let { t.voice = it }
+
+        // Tune pitch + rate to personality
+        when (PersonalityEngine.currentMode) {
+            PersonalityEngine.Mode.JARVIS -> {
+                t.setSpeechRate(0.92f)  // measured, deliberate
+                t.setPitch(0.82f)       // deep, calm
+            }
+            PersonalityEngine.Mode.PROFESSIONAL -> {
+                t.setSpeechRate(1.0f)
+                t.setPitch(0.88f)
+            }
+            PersonalityEngine.Mode.FRIENDLY -> {
+                t.setSpeechRate(1.05f)
+                t.setPitch(0.95f)
             }
         }
     }
 
     /**
-     * Speak [text] aloud. [onDone] is always called on the MAIN thread when speech finishes
-     * (or on error). TTS callbacks arrive on a background thread, so we always post back.
+     * Speak [text]. [onDone] always fires on the main thread when done or on error.
      */
     fun speak(text: String, onDone: (() -> Unit)? = null) {
         if (!ttsReady) {
-            // TTS not ready yet — call done immediately so callers aren't stuck
             mainThread.post { onDone?.invoke() }
             return
         }
@@ -80,6 +122,11 @@ class VoiceEngine(private val context: Context) : TextToSpeech.OnInitListener {
         })
         val params = Bundle()
         tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
+    }
+
+    /** Refresh voice settings when personality changes. */
+    fun refreshPersonality() {
+        tts?.let { applyPersonalityVoice(it) }
     }
 
     fun stopSpeaking() {
