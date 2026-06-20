@@ -41,24 +41,14 @@ data class ContactUsage(
     val lastCalled: Long = System.currentTimeMillis()
 )
 
-// ─── Command Log (new in V4) ───────────────────────────────────────────────
+// ─── Command Log (V4) ──────────────────────────────────────────────────────
 @Entity(tableName = "command_log")
 data class CommandLog(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val action: String,          // e.g. "Open App", "Set Alarm"
-    val detail: String = "",     // e.g. "WhatsApp", "7:00 AM"
-    val result: String = "",     // e.g. "✓ Success", "✗ Failed"
+    val action: String,
+    val detail: String = "",
+    val result: String = "",
     val timestamp: Long = System.currentTimeMillis()
-)
-
-// ─── Alarm ─────────────────────────────────────────────────────────────────
-data class AlarmInfo(
-    val id: Int,
-    val hour: Int,
-    val minute: Int,
-    val label: String,
-    val enabled: Boolean,
-    val timeMillis: Long
 )
 
 // ─── Contact ───────────────────────────────────────────────────────────────
@@ -103,16 +93,18 @@ enum class JavisAction {
     CHAT,
     OPEN_SETTINGS,
     CLEAR_MISSED_CALLS,
+    SWITCH_PERSONALITY,    // V4: "switch to JARVIS mode"
+    ROUTINE_QUERY,         // V4: "what should I do?" / "any suggestions?"
     UNKNOWN
 }
 
-// ─── Context State (V4: added currentGoal) ────────────────────────────────
+// ─── Context State ─────────────────────────────────────────────────────────
 data class ConversationContext(
     var lastContact: Contact? = null,
     var lastApp: InstalledApp? = null,
     var lastAction: JavisAction? = null,
     var lastTopic: String? = null,
-    var currentGoal: String? = null      // e.g. "Plan a trip" across multiple turns
+    var currentGoal: String? = null
 )
 
 // ─── Voice State ──────────────────────────────────────────────────────────
