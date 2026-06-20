@@ -6,7 +6,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.view.View
-import android.view.animation.AnimationUtils
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -14,13 +13,12 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.javis.launcher.JavisApplication
 import com.javis.launcher.R
+import com.javis.launcher.engine.ThinkingEngine
 import com.javis.launcher.engine.ai.AIEngine
 import com.javis.launcher.engine.context.ContextEngine
 import com.javis.launcher.engine.execution.ExecutionEngine
 import com.javis.launcher.engine.execution.ExecutionResult
-import com.javis.launcher.engine.intent.IntentAnalyzer
 import com.javis.launcher.engine.voice.SpeechRecognitionEngine
-import com.javis.launcher.models.JavisAction
 import com.javis.launcher.models.VoiceState
 import kotlinx.coroutines.launch
 
@@ -29,51 +27,49 @@ class VoiceActivity : AppCompatActivity() {
     private lateinit var recognition: SpeechRecognitionEngine
     private lateinit var execution: ExecutionEngine
     private lateinit var ai: AIEngine
-    private val voice get() = JavisApplication.instance.voiceEngine
+    private val voice  get() = JavisApplication.instance.voiceEngine
     private val memory get() = JavisApplication.instance.memoryEngine
 
-    private lateinit var tvStatus: TextView
+    private lateinit var tvStatus:     TextView
     private lateinit var tvTranscript: TextView
-    private lateinit var tvResponse: TextView
-    private lateinit var orbView: OrbView
-    private lateinit var waveView: VoiceWaveView
+    private lateinit var tvResponse:   TextView
+    private lateinit var orbView:      OrbView
+    private lateinit var waveView:     VoiceWaveView
 
     private var state = VoiceState.IDLE
     private val handler = Handler(Looper.getMainLooper())
-    private var pendingContacts: List<com.javis.launcher.models.Contact> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_voice)
 
-        tvStatus = findViewById(R.id.tv_status)
+        tvStatus     = findViewById(R.id.tv_status)
         tvTranscript = findViewById(R.id.tv_transcript)
-        tvResponse = findViewById(R.id.tv_response)
-        orbView = findViewById(R.id.orb_view)
-        waveView = findViewById(R.id.wave_view)
+        tvResponse   = findViewById(R.id.tv_response)
+        orbView      = findViewById(R.id.orb_view)
+        waveView     = findViewById(R.id.wave_view)
 
         recognition = SpeechRecognitionEngine(this)
-        execution = ExecutionEngine(this)
-        ai = AIEngine(this)
+        execution   = ExecutionEngine(this)
+        ai          = AIEngine(this)
 
         setupVoiceCallbacks()
 
-        // Tap orb to start/stop
         orbView.setOnClickListener {
-            if (state == VoiceState.IDLE || state == VoiceState.COMPLETED) {
-                startListening()
-            } else if (state == VoiceState.LISTENING) {
-                stopListening()
+            when (state) {
+                VoiceState.IDLE, VoiceState.COMPLETED -> startListening()
+                VoiceState.LISTENING                  -> stopListening()
+                else -> { /* busy — ignore tap */ }
             }
         }
 
-        // Back button
         findViewById<View>(R.id.btn_close).setOnClickListener { finish() }
 
         if (hasAudioPermission()) startListening()
         else requestAudioPermission()
     }
 
+    // ─── Speech Callbacks ─────────────────────────────────────────────────
     private fun setupVoiceCallbacks() {
         recognition.setCallback(object : SpeechRecognitionEngine.RecognitionCallback {
             override fun onListeningStarted() {
@@ -101,56 +97,75 @@ class VoiceActivity : AppCompatActivity() {
 
             override fun onSilence() {
                 runOnUiThread {
-                    if (state == VoiceState.LISTENING) {
-                        // Auto-restart in continuous mode
-                        handler.postDelayed({ if (state == VoiceState.LISTENING || state == VoiceState.IDLE) startListening() }, 300)
+                    // Only restart if we're not in the middle of processing
+                    if (state == VoiceState.LISTENING || state == VoiceState.IDLE) {
+                        handler.postDelayed({ if (!isFinishing) startListening() }, 300)
                     }
                 }
             }
         })
     }
 
+    // ─── V4 ThinkingEngine pipeline ───────────────────────────────────────
     private fun processInput(input: String) {
         lifecycleScope.launch {
             memory.saveMessage("user", input)
+            ContextEngine.inferAndUpdateGoal(input)
 
-            val intent = IntentAnalyzer.analyze(input)
-            ContextEngine.updateAction(intent.action)
+            val thought = ThinkingEngine.think(input)
+            ContextEngine.updateAction(thought.intentResult.action)
 
-            if (intent.action == JavisAction.CHAT) {
-                // Send to AI
-                val history = memory.getRecentHistory(10)
-                val response = ai.chat(input, history)
-                memory.saveMessage("assistant", response)
-                respond(response)
-            } else {
-                val result = execution.execute(intent)
-                when (result) {
-                    is ExecutionResult.Success -> {
-                        memory.saveMessage("assistant", result.message)
-                        respond(result.message)
-                    }
-                    is ExecutionResult.NeedsConfirmation -> {
-                        memory.saveMessage("assistant", result.message)
-                        respond(result.message, restartListening = true)
-                    }
-                    is ExecutionResult.Failure -> {
-                        if (result.message == "CHAT") {
-                            val history = memory.getRecentHistory(10)
-                            val response = ai.chat(input, history)
-                            memory.saveMessage("assistant", response)
-                            respond(response)
-                        } else {
+            when (thought.category) {
+                ThinkingEngine.Category.LOCAL_ACTION -> {
+                    setState(VoiceState.EXECUTING)
+                    val result = execution.execute(thought.intentResult)
+                    when (result) {
+                        is ExecutionResult.Success -> {
                             memory.saveMessage("assistant", result.message)
                             respond(result.message)
                         }
+                        is ExecutionResult.NeedsConfirmation -> {
+                            memory.saveMessage("assistant", result.message)
+                            respond(result.message, restartSoon = true)
+                        }
+                        is ExecutionResult.Failure -> {
+                            if (result.message == "CHAT") {
+                                // Wasn't really local — escalate to AI
+                                sendToAI(thought.enrichedPrompt ?: input)
+                            } else {
+                                memory.saveMessage("assistant", result.message)
+                                respond(result.message)
+                            }
+                        }
                     }
+                }
+
+                ThinkingEngine.Category.MEMORY_QUERY -> {
+                    val result = execution.execute(thought.intentResult)
+                    val msg = (result as? ExecutionResult.Success)?.message
+                        ?: (result as? ExecutionResult.Failure)?.message
+                        ?: "I don't have that stored."
+                    memory.saveMessage("assistant", msg)
+                    respond(msg)
+                }
+
+                ThinkingEngine.Category.AI_CONVERSATION,
+                ThinkingEngine.Category.HYBRID -> {
+                    sendToAI(thought.enrichedPrompt ?: input)
                 }
             }
         }
     }
 
-    private fun respond(text: String, restartListening: Boolean = false) {
+    private suspend fun sendToAI(prompt: String) {
+        val history  = memory.getRecentHistory(50)
+        val response = ai.chat(prompt, history)
+        memory.saveMessage("assistant", response)
+        memory.logCommand("AI Chat", prompt.take(50), "✓ Responded")
+        respond(response)
+    }
+
+    private fun respond(text: String, restartSoon: Boolean = false) {
         runOnUiThread {
             tvResponse.text = text
             setState(VoiceState.SPEAKING)
@@ -159,24 +174,25 @@ class VoiceActivity : AppCompatActivity() {
                     setState(VoiceState.COMPLETED)
                     handler.postDelayed({
                         if (!isFinishing) startListening()
-                    }, 800)
+                    }, if (restartSoon) 500L else 800L)
                 }
             }
         }
     }
 
+    // ─── State machine ────────────────────────────────────────────────────
     private fun setState(newState: VoiceState) {
         state = newState
         orbView.setState(newState)
         waveView.setState(newState)
         tvStatus.text = when (newState) {
-            VoiceState.IDLE -> "Tap to speak"
-            VoiceState.LISTENING -> "Listening..."
-            VoiceState.THINKING -> "Thinking..."
-            VoiceState.SPEAKING -> "Speaking..."
-            VoiceState.EXECUTING -> "Executing..."
-            VoiceState.COMPLETED -> "Done"
-            VoiceState.ERROR -> "Error"
+            VoiceState.IDLE       -> "Tap to speak"
+            VoiceState.LISTENING  -> "Listening..."
+            VoiceState.THINKING   -> "Thinking..."
+            VoiceState.SPEAKING   -> "Speaking..."
+            VoiceState.EXECUTING  -> "Executing..."
+            VoiceState.COMPLETED  -> "Done"
+            VoiceState.ERROR      -> "Error"
         }
     }
 
