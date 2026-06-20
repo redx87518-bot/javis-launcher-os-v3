@@ -13,7 +13,7 @@
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" tools:ignore="QueryAllPackagesPermission" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- Unlock briefing + clear missed calls -->
+    <!-- Call log + SMS for unlock briefing -->
     <uses-permission android:name="android.permission.READ_CALL_LOG" />
     <uses-permission android:name="android.permission.WRITE_CALL_LOG" />
     <uses-permission android:name="android.permission.READ_SMS" />
@@ -27,7 +27,7 @@
         android:theme="@style/Theme.JAVIS"
         android:name=".JavisApplication">
 
-        <!-- HOME SCREEN ACTIVITY — this makes it a launcher -->
+        <!-- HOME SCREEN — launcher -->
         <activity
             android:name=".ui.home.HomeActivity"
             android:exported="true"
@@ -42,40 +42,35 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".ui.chat.ChatActivity"
+        <activity android:name=".ui.chat.ChatActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
-        <activity
-            android:name=".ui.voice.VoiceActivity"
+        <activity android:name=".ui.voice.VoiceActivity"
             android:exported="false"
             android:theme="@style/Theme.JAVIS.Voice" />
 
-        <activity
-            android:name=".ui.memory.MemoryActivity"
+        <activity android:name=".ui.memory.MemoryActivity"
             android:exported="false" />
 
-        <activity
-            android:name=".ui.contacts.ContactsActivity"
+        <activity android:name=".ui.contacts.ContactsActivity"
             android:exported="false" />
 
-        <activity
-            android:name=".ui.alarms.AlarmsActivity"
+        <activity android:name=".ui.alarms.AlarmsActivity"
             android:exported="false" />
 
-        <activity
-            android:name=".ui.settings.SettingsActivity"
+        <activity android:name=".ui.settings.SettingsActivity"
             android:exported="false" />
 
-        <activity
-            android:name=".ui.voice.VoiceDiagnosticsActivity"
+        <activity android:name=".ui.voice.VoiceDiagnosticsActivity"
+            android:exported="false" />
+
+        <!-- V4: Command Center -->
+        <activity android:name=".ui.command.CommandCenterActivity"
             android:exported="false" />
 
         <!-- Boot Receiver -->
-        <receiver
-            android:name=".receivers.BootReceiver"
-            android:exported="true">
+        <receiver android:name=".receivers.BootReceiver" android:exported="true">
             <intent-filter android:priority="1000">
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.QUICKBOOT_POWERON" />
@@ -83,8 +78,7 @@
         </receiver>
 
         <!-- Foreground Service for Voice -->
-        <service
-            android:name=".services.JavisVoiceService"
+        <service android:name=".services.JavisVoiceService"
             android:exported="false"
             android:foregroundServiceType="microphone" />
 
