@@ -47,7 +47,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Everything is ready."
+            android:text="All systems operational."
             android:textColor="@color/javis_green"
             android:textSize="12sp" />
     </LinearLayout>
@@ -64,22 +64,44 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Provider status -->
-    <TextView
-        android:id="@+id/tv_provider_status"
+    <!-- Provider + Command Center row -->
+    <LinearLayout
+        android:id="@+id/layout_status_row"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="AI: Not configured"
-        android:textColor="@color/javis_text_secondary"
-        android:textSize="11sp"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="4dp"
-        android:background="@drawable/bg_pill"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
         app:layout_constraintTop_toBottomOf="@id/btn_orb"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toTopOf="@id/rv_favorite_apps"
-        android:layout_marginBottom="8dp"/>
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:id="@+id/tv_provider_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="AI: Not configured"
+            android:textColor="@color/javis_text_secondary"
+            android:textSize="11sp"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="4dp"
+            android:background="@drawable/bg_pill" />
+
+        <TextView
+            android:id="@+id/btn_command_center"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="⌥ Log"
+            android:textColor="@color/javis_text_secondary"
+            android:textSize="11sp"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="4dp"
+            android:background="@drawable/bg_pill"
+            android:layout_marginStart="8dp"
+            android:clickable="true"
+            android:focusable="true"/>
+    </LinearLayout>
 
     <!-- Favorite Apps -->
     <androidx.recyclerview.widget.RecyclerView
