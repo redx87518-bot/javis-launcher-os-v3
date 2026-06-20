@@ -11,10 +11,10 @@ import com.javis.launcher.models.*
  * the request so VoiceActivity/ChatActivity never contain routing logic.
  *
  * Route map:
- *   LOCAL_ACTION   → ExecutionEngine (alarms, calls, app opens, memory writes)
- *   MEMORY_QUERY   → MemoryEngine (recall stored facts, no AI needed)
+ *   LOCAL_ACTION    → ExecutionEngine (alarms, calls, app opens, mode switches)
+ *   MEMORY_QUERY    → MemoryEngine (recall stored facts, no AI needed)
  *   AI_CONVERSATION → AIEngine (complex chat, explanations, questions)
- *   HYBRID         → ExecutionEngine + AIEngine (execute AND explain)
+ *   HYBRID          → ExecutionEngine + AIEngine
  */
 object ThinkingEngine {
 
@@ -28,8 +28,8 @@ object ThinkingEngine {
     data class ThinkingResult(
         val category: Category,
         val intentResult: IntentResult,
-        val shouldAlsoAsk: Boolean = false,   // true = run execution AND send to AI
-        val enrichedPrompt: String? = null    // richer prompt to send AI if needed
+        val shouldAlsoAsk: Boolean = false,
+        val enrichedPrompt: String? = null
     )
 
     fun think(input: String): ThinkingResult {
@@ -41,18 +41,23 @@ object ThinkingEngine {
             JavisAction.OPEN_APP,
             JavisAction.SET_ALARM,
             JavisAction.CLEAR_MISSED_CALLS,
-            JavisAction.OPEN_SETTINGS ->
+            JavisAction.OPEN_SETTINGS,
+            JavisAction.SWITCH_PERSONALITY ->   // V4: personality switch
                 ThinkingResult(Category.LOCAL_ACTION, intent)
 
-            // ── Calls: local but may need AI for ambiguity ─────────────
+            // ── Calls: local, context-aware ────────────────────────────
             JavisAction.CALL_CONTACT ->
+                ThinkingResult(Category.LOCAL_ACTION, intent)
+
+            // ── Routine queries: handled by MemoryEngine + RoutineLearning
+            JavisAction.ROUTINE_QUERY ->
                 ThinkingResult(Category.LOCAL_ACTION, intent)
 
             // ── Memory reads: answer from DB, no AI ────────────────────
             JavisAction.QUERY_MEMORY ->
                 ThinkingResult(Category.MEMORY_QUERY, intent)
 
-            // ── Memory writes: local, no AI needed ─────────────────────
+            // ── Memory writes: local ────────────────────────────────────
             JavisAction.UPDATE_MEMORY ->
                 ThinkingResult(Category.LOCAL_ACTION, intent)
 
@@ -66,7 +71,7 @@ object ThinkingEngine {
                 )
             }
 
-            // ── Unknown: let AI figure it out ──────────────────────────
+            // ── Unknown → let AI handle ────────────────────────────────
             JavisAction.UNKNOWN -> {
                 val enriched = buildEnrichedPrompt(input, ctx)
                 ThinkingResult(
@@ -78,18 +83,12 @@ object ThinkingEngine {
         }
     }
 
-    /**
-     * Enrich the raw user input with context so the AI can resolve references
-     * like "him", "it", "that app" without the user repeating themselves.
-     */
     private fun buildEnrichedPrompt(input: String, ctx: ConversationContext): String {
         val notes = mutableListOf<String>()
         ctx.lastContact?.let { notes += "[Context: last mentioned contact is ${it.name}]" }
         ctx.lastApp?.let { notes += "[Context: last mentioned app is ${it.appName}]" }
         ctx.lastTopic?.let { if (it.isNotBlank()) notes += "[Context: last topic was $it]" }
         ctx.currentGoal?.let { if (it.isNotBlank()) notes += "[User's current goal: $it]" }
-
-        return if (notes.isEmpty()) input
-        else "${notes.joinToString(" ")} User says: $input"
+        return if (notes.isEmpty()) input else "${notes.joinToString(" ")} User says: $input"
     }
 }
