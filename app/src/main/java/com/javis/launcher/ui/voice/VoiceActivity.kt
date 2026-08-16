@@ -27,8 +27,8 @@ class VoiceActivity : AppCompatActivity() {
     private lateinit var recognition: SpeechRecognitionEngine
     private lateinit var execution: ExecutionEngine
     private lateinit var ai: AIEngine
-    private val voice  get() = JavisApplication.instance.voiceEngine
-    private val memory get() = JavisApplication.instance.memoryEngine
+    private val voice  get() = JavisApplication.instance.voiceEngine!!
+    private val memory get() = JavisApplication.instance.memoryEngine!!
 
     private lateinit var tvStatus:     TextView
     private lateinit var tvTranscript: TextView

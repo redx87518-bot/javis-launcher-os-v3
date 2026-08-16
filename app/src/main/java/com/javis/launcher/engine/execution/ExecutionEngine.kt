@@ -24,7 +24,8 @@ sealed class ExecutionResult {
 
 class ExecutionEngine(private val context: Context) {
 
-    private val memory = JavisApplication.instance.memoryEngine
+    private val memory: MemoryEngine
+        get() = JavisApplication.instance.memoryEngine!!
 
     suspend fun execute(intent: IntentResult): ExecutionResult = withContext(Dispatchers.Main) {
         val mem = memory ?: return@withContext ExecutionResult.Failure("Memory engine not initialized.")

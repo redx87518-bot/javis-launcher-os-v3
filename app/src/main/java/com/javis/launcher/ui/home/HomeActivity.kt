@@ -35,8 +35,8 @@ import java.util.*
 
 class HomeActivity : AppCompatActivity() {
 
-    private val memory get() = JavisApplication.instance.memoryEngine
-    private val voice  get() = JavisApplication.instance.voiceEngine
+    private val memory get() = JavisApplication.instance.memoryEngine!!
+    private val voice  get() = JavisApplication.instance.voiceEngine!!
 
     private lateinit var tvGreeting:      TextView
     private lateinit var tvTime:          TextView

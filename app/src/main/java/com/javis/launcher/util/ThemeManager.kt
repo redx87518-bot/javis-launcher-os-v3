@@ -17,11 +17,11 @@ object ThemeManager {
     val themes = listOf(THEME_RED, THEME_BLUE, THEME_GREEN, THEME_PURPLE, THEME_ORANGE)
 
     fun themeStyleName(theme: String): String = when (theme) {
-        THEME_BLUE -> "Theme.JAVIS.Blue"
-        THEME_GREEN -> "Theme.JAVIS.Green"
-        THEME_PURPLE -> "Theme.JAVIS.Purple"
-        THEME_ORANGE -> "Theme.JAVIS.Orange"
-        else -> "Theme.JAVIS"
+        THEME_BLUE -> "Theme_JAVIS_Blue"
+        THEME_GREEN -> "Theme_JAVIS_Green"
+        THEME_PURPLE -> "Theme_JAVIS_Purple"
+        THEME_ORANGE -> "Theme_JAVIS_Orange"
+        else -> "Theme_JAVIS"
     }
 
     fun getTheme(context: Context): String {

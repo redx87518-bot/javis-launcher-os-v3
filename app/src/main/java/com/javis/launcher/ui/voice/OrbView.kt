@@ -6,6 +6,7 @@ import android.graphics.*
 import android.util.AttributeSet
 import android.view.View
 import android.view.animation.LinearInterpolator
+import com.javis.launcher.models.VoiceState
 import com.javis.launcher.util.ThemeManager
 import kotlin.math.cos
 import kotlin.math.min

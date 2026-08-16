@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 
 class MemoryActivity : AppCompatActivity() {
 
-    private val memory get() = JavisApplication.instance.memoryEngine
+    private val memory get() = JavisApplication.instance.memoryEngine!!
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

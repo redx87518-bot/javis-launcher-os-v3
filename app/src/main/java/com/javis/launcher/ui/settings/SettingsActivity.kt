@@ -21,8 +21,8 @@ import kotlinx.coroutines.withContext
 
 class SettingsActivity : AppCompatActivity() {
 
-    private val memory get() = JavisApplication.instance.memoryEngine
-    private val voice get() = JavisApplication.instance.voiceEngine
+    private val memory get() = JavisApplication.instance.memoryEngine!!
+    private val voice get() = JavisApplication.instance.voiceEngine!!
     private lateinit var ai: AIEngine
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,7 +44,9 @@ class SettingsActivity : AppCompatActivity() {
 
     private fun applySavedTheme() {
         val theme = ThemeManager.getTheme(this)
-        setTheme(ThemeManager.themeStyleName(theme))
+        val styleName = ThemeManager.themeStyleName(theme)
+        val resId = resources.getIdentifier(styleName, "style", packageName)
+        if (resId != 0) setTheme(resId)
     }
 
     // ─── AI Provider ──────────────────────────────────────────────────────
