@@ -12,6 +12,7 @@ import com.javis.launcher.JavisApplication
 import com.javis.launcher.engine.PersonalityEngine
 import com.javis.launcher.engine.RoutineLearningEngine
 import com.javis.launcher.engine.context.ContextEngine
+import com.javis.launcher.engine.memory.MemoryEngine
 import com.javis.launcher.models.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -28,7 +29,6 @@ class ExecutionEngine(private val context: Context) {
         get() = JavisApplication.instance.memoryEngine!!
 
     suspend fun execute(intent: IntentResult): ExecutionResult = withContext(Dispatchers.Main) {
-        val mem = memory ?: return@withContext ExecutionResult.Failure("Memory engine not initialized.")
         val result = when (intent.action) {
             JavisAction.OPEN_APP           -> openApp(intent.params["appName"] ?: "")
             JavisAction.CALL_CONTACT       -> callContact(intent.params["contactName"] ?: "")
@@ -59,7 +59,7 @@ class ExecutionEngine(private val context: Context) {
                     if (result.message == "CHAT") "" else "Failed: ${result.message.take(40)}"
                 is ExecutionResult.NeedsConfirmation -> "Needs input"
             }
-            mem.logCommand(actionLabel, detail, resultLabel)
+            memory.logCommand(actionLabel, detail, resultLabel)
         }
 
         result
