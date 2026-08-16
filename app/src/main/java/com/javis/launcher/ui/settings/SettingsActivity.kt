@@ -11,8 +11,10 @@ import com.javis.launcher.R
 import com.javis.launcher.engine.PersonalityEngine
 import com.javis.launcher.engine.RoutineLearningEngine
 import com.javis.launcher.engine.ai.AIEngine
+import com.javis.launcher.engine.voice.VoiceEngine
 import com.javis.launcher.models.AIProvider
 import com.javis.launcher.ui.voice.VoiceDiagnosticsActivity
+import com.javis.launcher.util.ThemeManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -20,20 +22,29 @@ import kotlinx.coroutines.withContext
 class SettingsActivity : AppCompatActivity() {
 
     private val memory get() = JavisApplication.instance.memoryEngine
+    private val voice get() = JavisApplication.instance.voiceEngine
     private lateinit var ai: AIEngine
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        applySavedTheme()
         setContentView(R.layout.activity_settings)
         ai = AIEngine(this)
 
         findViewById<View>(R.id.btn_back).setOnClickListener { finish() }
 
         setupProviderSection()
+        setupThemeSection()
         setupPersonalitySection()
+        setupVoiceSection()
         setupMemorySection()
         setupRoutineSection()
         setupDiagnosticsSection()
+    }
+
+    private fun applySavedTheme() {
+        val theme = ThemeManager.getTheme(this)
+        setTheme(ThemeManager.themeStyleName(theme))
     }
 
     // ─── AI Provider ──────────────────────────────────────────────────────
@@ -81,12 +92,38 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    // ─── Theme (V4) ──────────────────────────────────────────────────────
+    private fun setupThemeSection() {
+        val rgTheme = findViewById<RadioGroup>(R.id.rg_theme)
+        val current = ThemeManager.getTheme(this)
+        val checkedId = when (current) {
+            ThemeManager.THEME_BLUE -> R.id.rb_theme_blue
+            ThemeManager.THEME_GREEN -> R.id.rb_theme_green
+            ThemeManager.THEME_PURPLE -> R.id.rb_theme_purple
+            ThemeManager.THEME_ORANGE -> R.id.rb_theme_orange
+            else -> R.id.rb_theme_red
+        }
+        rgTheme.check(checkedId)
+
+        rgTheme.setOnCheckedChangeListener { _, checkedId ->
+            val theme = when (checkedId) {
+                R.id.rb_theme_blue -> ThemeManager.THEME_BLUE
+                R.id.rb_theme_green -> ThemeManager.THEME_GREEN
+                R.id.rb_theme_purple -> ThemeManager.THEME_PURPLE
+                R.id.rb_theme_orange -> ThemeManager.THEME_ORANGE
+                else -> ThemeManager.THEME_RED
+            }
+            ThemeManager.setTheme(this, theme)
+            Toast.makeText(this, "Theme updated. Restart JAVIS to apply fully.", Toast.LENGTH_SHORT).show()
+            recreate()
+        }
+    }
+
     // ─── Personality Mode (V4) ────────────────────────────────────────────
     private fun setupPersonalitySection() {
         val rgPersonality = findViewById<RadioGroup>(R.id.rg_personality)
         val tvPersonality = findViewById<TextView>(R.id.tv_personality_status)
 
-        // Set current mode
         val currentId = when (PersonalityEngine.currentMode) {
             PersonalityEngine.Mode.JARVIS        -> R.id.rb_jarvis
             PersonalityEngine.Mode.PROFESSIONAL  -> R.id.rb_professional
@@ -102,9 +139,55 @@ class SettingsActivity : AppCompatActivity() {
                 else                 -> PersonalityEngine.Mode.JARVIS
             }
             PersonalityEngine.currentMode = newMode
-            JavisApplication.instance.voiceEngine.refreshPersonality()
+            voice?.refreshPersonality()
             tvPersonality.text = "Current: ${PersonalityEngine.modeName()}"
             Toast.makeText(this, "${PersonalityEngine.modeName()} mode activated.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // ─── Voice & Eleven Labs (V4) ────────────────────────────────────────
+    private fun setupVoiceSection() {
+        val rgTts = findViewById<RadioGroup>(R.id.rg_tts_engine)
+        val etElevenKey = findViewById<EditText>(R.id.et_eleven_api_key)
+        val etElevenVoice = findViewById<EditText>(R.id.et_eleven_voice_id)
+        val btnSaveVoice = findViewById<Button>(R.id.btn_save_voice)
+        val tvVoiceStatus = findViewById<TextView>(R.id.tv_voice_status)
+
+        val prefs = getSharedPreferences("javis_voice_prefs", MODE_PRIVATE)
+        val savedEngine = prefs.getString("tts_engine", "system")
+        val savedKey = prefs.getString("eleven_api_key", "")
+        val savedVoice = prefs.getString("eleven_voice_id", "21m00Tcm4TlvDq8ikWAM")
+
+        etElevenKey.setText(savedKey)
+        etElevenVoice.setText(savedVoice)
+
+        val checkedId = when (savedEngine) {
+            "eleven" -> R.id.rb_tts_eleven
+            else -> R.id.rb_tts_system
+        }
+        rgTts.check(checkedId)
+        tvVoiceStatus.text = when (savedEngine) {
+            "eleven" -> "Eleven Labs Active"
+            else -> "System TTS Active"
+        }
+
+        rgTts.setOnCheckedChangeListener { _, checkedId ->
+            val engine = if (checkedId == R.id.rb_tts_eleven) "eleven" else "system"
+            prefs.edit().putString("tts_engine", engine).apply()
+            tvVoiceStatus.text = if (engine == "eleven") "Eleven Labs Active" else "System TTS Active"
+            voice?.refreshPersonality()
+            Toast.makeText(this, "TTS engine updated.", Toast.LENGTH_SHORT).show()
+        }
+
+        btnSaveVoice.setOnClickListener {
+            val key = etElevenKey.text.toString().trim()
+            val voiceId = etElevenVoice.text.toString().trim().ifBlank { "21m00Tcm4TlvDq8ikWAM" }
+            prefs.edit()
+                .putString("eleven_api_key", key)
+                .putString("eleven_voice_id", voiceId)
+                .apply()
+            Toast.makeText(this, "Eleven Labs settings saved ✓", Toast.LENGTH_SHORT).show()
+            voice?.refreshPersonality()
         }
     }
 

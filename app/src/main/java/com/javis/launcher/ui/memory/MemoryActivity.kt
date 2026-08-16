@@ -27,35 +27,38 @@ class MemoryActivity : AppCompatActivity() {
         val rvMemory = findViewById<RecyclerView>(R.id.rv_memory)
         rvMemory.layoutManager = LinearLayoutManager(this)
 
-        lifecycleScope.launch {
-            val memories = memory.recallAll()
-            val topApps = memory.getTopApps(5)
-            val topContacts = memory.getTopContacts(5)
+        val mem = memory
+        if (mem != null) {
+            lifecycleScope.launch {
+                val memories = mem.recallAll()
+                val topApps = mem.getTopApps(5)
+                val topContacts = mem.getTopContacts(5)
 
-            val items = mutableListOf<MemoryItem>()
-            if (memories.isNotEmpty()) {
-                items.add(MemoryItem("STORED MEMORIES", "", isHeader = true))
-                memories.forEach { m ->
-                    items.add(MemoryItem(formatKey(m.key), m.value))
+                val items = mutableListOf<MemoryItem>()
+                if (memories.isNotEmpty()) {
+                    items.add(MemoryItem("STORED MEMORIES", "", isHeader = true))
+                    memories.forEach { m ->
+                        items.add(MemoryItem(formatKey(m.key), m.value))
+                    }
                 }
-            }
-            if (topApps.isNotEmpty()) {
-                items.add(MemoryItem("FREQUENT APPS", "", isHeader = true))
-                topApps.forEach { a ->
-                    items.add(MemoryItem(a.appName, "Used ${a.useCount} times"))
+                if (topApps.isNotEmpty()) {
+                    items.add(MemoryItem("FREQUENT APPS", "", isHeader = true))
+                    topApps.forEach { a ->
+                        items.add(MemoryItem(a.appName, "Used ${a.useCount} times"))
+                    }
                 }
-            }
-            if (topContacts.isNotEmpty()) {
-                items.add(MemoryItem("FREQUENT CONTACTS", "", isHeader = true))
-                topContacts.forEach { c ->
-                    items.add(MemoryItem(c.name, "Called ${c.callCount} times"))
+                if (topContacts.isNotEmpty()) {
+                    items.add(MemoryItem("FREQUENT CONTACTS", "", isHeader = true))
+                    topContacts.forEach { c ->
+                        items.add(MemoryItem(c.name, "Called ${c.callCount} times"))
+                    }
                 }
-            }
-            if (items.isEmpty()) {
-                items.add(MemoryItem("No memories yet", "Start talking to JAVIS to build memory.", isHeader = false))
-            }
+                if (items.isEmpty()) {
+                    items.add(MemoryItem("No memories yet", "Start talking to JAVIS to build memory.", isHeader = false))
+                }
 
-            rvMemory.adapter = MemoryAdapter(items)
+                rvMemory.adapter = MemoryAdapter(items)
+            }
         }
     }
 

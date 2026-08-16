@@ -14,4 +14,18 @@
     <color name="javis_text_secondary">#8888AA</color>
     <color name="javis_border">#1E1E40</color>
     <color name="javis_orb_ring">#CC0000</color>
+
+    <!-- Theme variants -->
+    <color name="theme_blue_primary">#0066CC</color>
+    <color name="theme_blue_primary_variant">#0088FF</color>
+    <color name="theme_blue_orb">#0088FF</color>
+    <color name="theme_green_primary">#00AA44</color>
+    <color name="theme_green_primary_variant">#00CC55</color>
+    <color name="theme_green_orb">#00CC55</color>
+    <color name="theme_purple_primary">#8800CC</color>
+    <color name="theme_purple_primary_variant">#AA00FF</color>
+    <color name="theme_purple_orb">#AA00FF</color>
+    <color name="theme_orange_primary">#CC6600</color>
+    <color name="theme_orange_primary_variant">#FF8800</color>
+    <color name="theme_orange_orb">#FF8800</color>
 </resources>

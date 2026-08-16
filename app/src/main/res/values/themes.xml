@@ -15,6 +15,66 @@
         <item name="android:windowLightStatusBar">false</item>
     </style>
 
+    <style name="Theme.JAVIS.Blue" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/theme_blue_primary</item>
+        <item name="colorPrimaryVariant">@color/theme_blue_primary_variant</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/javis_green</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="android:colorBackground">@color/javis_bg</item>
+        <item name="android:textColorPrimary">@color/javis_text_primary</item>
+        <item name="android:textColorSecondary">@color/javis_text_secondary</item>
+        <item name="android:windowBackground">@color/javis_bg</item>
+        <item name="android:statusBarColor">@color/javis_bg</item>
+        <item name="android:navigationBarColor">@color/javis_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <style name="Theme.JAVIS.Green" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/theme_green_primary</item>
+        <item name="colorPrimaryVariant">@color/theme_green_primary_variant</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/javis_red</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="android:colorBackground">@color/javis_bg</item>
+        <item name="android:textColorPrimary">@color/javis_text_primary</item>
+        <item name="android:textColorSecondary">@color/javis_text_secondary</item>
+        <item name="android:windowBackground">@color/javis_bg</item>
+        <item name="android:statusBarColor">@color/javis_bg</item>
+        <item name="android:navigationBarColor">@color/javis_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <style name="Theme.JAVIS.Purple" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/theme_purple_primary</item>
+        <item name="colorPrimaryVariant">@color/theme_purple_primary_variant</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/javis_green_bright</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="android:colorBackground">@color/javis_bg</item>
+        <item name="android:textColorPrimary">@color/javis_text_primary</item>
+        <item name="android:textColorSecondary">@color/javis_text_secondary</item>
+        <item name="android:windowBackground">@color/javis_bg</item>
+        <item name="android:statusBarColor">@color/javis_bg</item>
+        <item name="android:navigationBarColor">@color/javis_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
+    <style name="Theme.JAVIS.Orange" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/theme_orange_primary</item>
+        <item name="colorPrimaryVariant">@color/theme_orange_primary_variant</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/javis_red_bright</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="android:colorBackground">@color/javis_bg</item>
+        <item name="android:textColorPrimary">@color/javis_text_primary</item>
+        <item name="android:textColorSecondary">@color/javis_text_secondary</item>
+        <item name="android:windowBackground">@color/javis_bg</item>
+        <item name="android:statusBarColor">@color/javis_bg</item>
+        <item name="android:navigationBarColor">@color/javis_bg</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+
     <style name="Theme.JAVIS.Voice" parent="Theme.JAVIS">
         <item name="android:windowBackground">@color/javis_bg</item>
         <item name="android:statusBarColor">@color/javis_bg</item>

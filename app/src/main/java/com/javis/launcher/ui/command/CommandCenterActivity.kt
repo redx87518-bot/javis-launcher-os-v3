@@ -36,19 +36,20 @@ class CommandCenterActivity : AppCompatActivity() {
         val prov = ai.getActiveProvider()
 
         findViewById<TextView>(R.id.tv_ai_status).text =
-            if (prov != null) "AI Provider: ${prov.name} ✓" else "AI Provider: Not configured"
+            if (prov != null) "AI Provider: ${prov.name}" else "AI Provider: Not configured"
 
         val voice = JavisApplication.instance.voiceEngine
         findViewById<TextView>(R.id.tv_voice_status).text =
-            "TTS Engine: ${if (voice.isReady()) "Ready ✓" else "Initializing..."}"
+            "TTS Engine: ${if (voice?.isReady() == true) "Ready" else "Initializing..."}"
 
         findViewById<TextView>(R.id.tv_personality_status).text =
             "Personality: ${PersonalityEngine.modeName()}"
     }
 
     private fun loadCommandLog() {
+        val mem = memory ?: return
         lifecycleScope.launch {
-            val logs = memory.getCommandLogs(100)
+            val logs = mem.getCommandLogs(100)
             val rv = findViewById<RecyclerView>(R.id.rv_command_log)
             rv.layoutManager = LinearLayoutManager(this@CommandCenterActivity)
                 .apply { reverseLayout = true; stackFromEnd = true }

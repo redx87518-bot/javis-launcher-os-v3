@@ -27,6 +27,7 @@ class ExecutionEngine(private val context: Context) {
     private val memory = JavisApplication.instance.memoryEngine
 
     suspend fun execute(intent: IntentResult): ExecutionResult = withContext(Dispatchers.Main) {
+        val mem = memory ?: return@withContext ExecutionResult.Failure("Memory engine not initialized.")
         val result = when (intent.action) {
             JavisAction.OPEN_APP           -> openApp(intent.params["appName"] ?: "")
             JavisAction.CALL_CONTACT       -> callContact(intent.params["contactName"] ?: "")
@@ -52,12 +53,12 @@ class ExecutionEngine(private val context: Context) {
                 .replaceFirstChar { it.uppercase() }
             val detail = intent.params.values.firstOrNull() ?: ""
             val resultLabel = when (result) {
-                is ExecutionResult.Success           -> "✓ ${result.message.take(40)}"
+                is ExecutionResult.Success           -> "Done: ${result.message.take(40)}"
                 is ExecutionResult.Failure           ->
-                    if (result.message == "CHAT") "" else "✗ ${result.message.take(40)}"
-                is ExecutionResult.NeedsConfirmation -> "⚠ Needs input"
+                    if (result.message == "CHAT") "" else "Failed: ${result.message.take(40)}"
+                is ExecutionResult.NeedsConfirmation -> "Needs input"
             }
-            memory.logCommand(actionLabel, detail, resultLabel)
+            mem.logCommand(actionLabel, detail, resultLabel)
         }
 
         result
@@ -217,7 +218,7 @@ class ExecutionEngine(private val context: Context) {
             else           -> PersonalityEngine.Mode.JARVIS
         }
         PersonalityEngine.currentMode = newMode
-        JavisApplication.instance.voiceEngine.refreshPersonality()
+        JavisApplication.instance.voiceEngine?.refreshPersonality()
 
         val confirm = when (newMode) {
             PersonalityEngine.Mode.JARVIS        -> "JARVIS mode activated. Formal protocols engaged, Sir."
@@ -229,7 +230,8 @@ class ExecutionEngine(private val context: Context) {
 
     // ─── Routine Query (V4) ────────────────────────────────────────────────
     private suspend fun routineQuery(): ExecutionResult {
-        val briefing = RoutineLearningEngine.getMorningBriefing(memory)
+        val mem = memory ?: return ExecutionResult.Success("Memory engine not available for routine insights.")
+        val briefing = RoutineLearningEngine.getMorningBriefing(mem)
         return ExecutionResult.Success(briefing)
     }
 

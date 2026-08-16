@@ -108,8 +108,9 @@ class VoiceActivity : AppCompatActivity() {
 
     // ─── V4 ThinkingEngine pipeline ───────────────────────────────────────
     private fun processInput(input: String) {
+        val mem = memory ?: return
         lifecycleScope.launch {
-            memory.saveMessage("user", input)
+            mem.saveMessage("user", input)
             ContextEngine.inferAndUpdateGoal(input)
 
             val thought = ThinkingEngine.think(input)
@@ -121,19 +122,18 @@ class VoiceActivity : AppCompatActivity() {
                     val result = execution.execute(thought.intentResult)
                     when (result) {
                         is ExecutionResult.Success -> {
-                            memory.saveMessage("assistant", result.message)
+                            mem.saveMessage("assistant", result.message)
                             respond(result.message)
                         }
                         is ExecutionResult.NeedsConfirmation -> {
-                            memory.saveMessage("assistant", result.message)
+                            mem.saveMessage("assistant", result.message)
                             respond(result.message, restartSoon = true)
                         }
                         is ExecutionResult.Failure -> {
                             if (result.message == "CHAT") {
-                                // Wasn't really local — escalate to AI
                                 sendToAI(thought.enrichedPrompt ?: input)
                             } else {
-                                memory.saveMessage("assistant", result.message)
+                                mem.saveMessage("assistant", result.message)
                                 respond(result.message)
                             }
                         }
@@ -145,7 +145,7 @@ class VoiceActivity : AppCompatActivity() {
                     val msg = (result as? ExecutionResult.Success)?.message
                         ?: (result as? ExecutionResult.Failure)?.message
                         ?: "I don't have that stored."
-                    memory.saveMessage("assistant", msg)
+                    mem.saveMessage("assistant", msg)
                     respond(msg)
                 }
 
@@ -158,18 +158,20 @@ class VoiceActivity : AppCompatActivity() {
     }
 
     private suspend fun sendToAI(prompt: String) {
-        val history  = memory.getRecentHistory(50)
+        val mem = memory ?: return
+        val history  = mem.getRecentHistory(50)
         val response = ai.chat(prompt, history)
-        memory.saveMessage("assistant", response)
-        memory.logCommand("AI Chat", prompt.take(50), "✓ Responded")
+        mem.saveMessage("assistant", response)
+        mem.logCommand("AI Chat", prompt.take(50), "Responded")
         respond(response)
     }
 
     private fun respond(text: String, restartSoon: Boolean = false) {
+        val v = voice
         runOnUiThread {
             tvResponse.text = text
             setState(VoiceState.SPEAKING)
-            voice.speak(text) {
+            v?.speak(text) {
                 runOnUiThread {
                     setState(VoiceState.COMPLETED)
                     handler.postDelayed({

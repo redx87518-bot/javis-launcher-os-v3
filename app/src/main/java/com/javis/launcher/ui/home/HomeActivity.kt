@@ -95,15 +95,19 @@ class HomeActivity : AppCompatActivity() {
         if (!UnlockReceiver.consumePendingGreeting(this)) return
         lastGreetedAtMs = now
 
+        val mem = memory
+        val v = voice
+        if (mem == null || v == null) return
+
         lifecycleScope.launch {
             delay(600)
-            val name      = memory.getNickname() ?: memory.getUserName()
+            val name      = mem.getNickname() ?: mem.getUserName()
             val battery   = getBatteryLevel()
             val missed    = getMissedCallCount()
             val unreadSms = getUnreadSmsCount()
             val greeting  = PersonalityEngine.welcomeMessage(name, battery, missed, unreadSms)
             tvStatusLine.text = greeting
-            if (voice.isReady()) voice.speak(greeting)
+            if (v.isReady()) v.speak(greeting)
         }
     }
 
@@ -132,8 +136,14 @@ class HomeActivity : AppCompatActivity() {
 
     // ─── Greeting & routine suggestion ───────────────────────────────────
     private fun refreshGreeting() {
+        val mem = memory
+        if (mem == null) {
+            tvGreeting.text = "JAVIS initializing..."
+            return
+        }
+
         lifecycleScope.launch {
-            val name  = memory.getNickname() ?: memory.getUserName()
+            val name  = mem.getNickname() ?: mem.getUserName()
             val hour  = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
             val greet = when {
                 hour < 12 -> "Good morning"
@@ -148,7 +158,7 @@ class HomeActivity : AppCompatActivity() {
             tvGreeting.text = "$greet$address."
 
             // Routine learning suggestion as status line
-            val suggestions = RoutineLearningEngine.getSuggestions(memory, this@HomeActivity)
+            val suggestions = RoutineLearningEngine.getSuggestions(mem, this@HomeActivity)
             tvStatusLine.text = if (suggestions.isNotEmpty()) {
                 suggestions.first().text
             } else {
@@ -159,8 +169,9 @@ class HomeActivity : AppCompatActivity() {
 
     // ─── Favourite apps grid ──────────────────────────────────────────────
     private fun loadFavoriteApps() {
+        val mem = memory ?: return
         lifecycleScope.launch {
-            val topApps = memory.getTopApps(8)
+            val topApps = mem.getTopApps(8)
             val pm = packageManager
 
             val appItems: List<Pair<String, String>> = if (topApps.isNotEmpty()) {
@@ -194,7 +205,7 @@ class HomeActivity : AppCompatActivity() {
                         val appName = try {
                             pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
                         } catch (e: Exception) { pkg }
-                        memory.trackAppOpen(pkg, appName)
+                        mem.trackAppOpen(pkg, appName)
                     }
                 } catch (e: Exception) {
                     // App uninstalled or unavailable — silently ignore

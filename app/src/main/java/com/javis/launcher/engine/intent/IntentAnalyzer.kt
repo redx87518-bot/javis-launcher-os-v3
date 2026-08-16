@@ -107,7 +107,8 @@ object IntentAnalyzer {
             "what do you suggest", "morning briefing", "daily briefing",
             "what's on my routine", "what's my routine", "my routine",
             "what do i usually", "what are my habits", "what's next",
-            "any reminders", "brief me", "briefing please"
+            "any reminders", "brief me", "briefing please",
+            "what's up", "what's new", "any updates"
         )
         return patterns.any { text.contains(it) }
     }

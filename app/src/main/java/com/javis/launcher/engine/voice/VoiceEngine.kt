@@ -10,29 +10,28 @@ import com.javis.launcher.engine.PersonalityEngine
 import java.util.Locale
 import java.util.UUID
 
-/**
- * V4 VoiceEngine — Text-to-Speech with personality modes.
- *
- * Provider priority: Kokoro TTS (if installed) → higher-quality Android voice → standard Android TTS
- *
- * All TTS callbacks are posted to the main thread — safe to update UI directly.
- */
 class VoiceEngine(private val context: Context) : TextToSpeech.OnInitListener {
 
     private var tts: TextToSpeech? = null
     private var ttsReady = false
     private val mainThread = Handler(Looper.getMainLooper())
+    private var elevenTts: ElevenLabsTts? = null
 
     var onSpeakingStart: (() -> Unit)? = null
     var onSpeakingEnd: (() -> Unit)? = null
 
     init {
         initTTS()
+        elevenTts = ElevenLabsTts(context)
     }
 
     private fun initTTS() {
-        // Try Kokoro TTS engine first (user must install "Kokoro TTS" from Play Store)
-        // If not installed, Android falls back to its built-in engine automatically
+        val prefs = context.getSharedPreferences("javis_voice_prefs", Context.MODE_PRIVATE)
+        val engine = prefs.getString("tts_engine", "system") ?: "system"
+        if (engine == "eleven") {
+            ttsReady = false
+            return
+        }
         tts = TextToSpeech(context, this, "dev.kokoro.tts")
     }
 
@@ -46,7 +45,6 @@ class VoiceEngine(private val context: Context) : TextToSpeech.OnInitListener {
                 }
             }
         } else {
-            // Kokoro not available — fall back to default engine
             tts?.shutdown()
             tts = TextToSpeech(context, object : TextToSpeech.OnInitListener {
                 override fun onInit(fallbackStatus: Int) {
@@ -65,7 +63,6 @@ class VoiceEngine(private val context: Context) : TextToSpeech.OnInitListener {
     }
 
     private fun applyPersonalityVoice(t: TextToSpeech) {
-        // Prefer a deep male voice
         val voices = t.voices
         val preferredVoice = voices?.firstOrNull { v ->
             v.locale == Locale.US && v.name.lowercase().let { n ->
@@ -77,11 +74,10 @@ class VoiceEngine(private val context: Context) : TextToSpeech.OnInitListener {
         }
         preferredVoice?.let { t.voice = it }
 
-        // Tune pitch + rate to personality
         when (PersonalityEngine.currentMode) {
             PersonalityEngine.Mode.JARVIS -> {
-                t.setSpeechRate(0.92f)  // measured, deliberate
-                t.setPitch(0.82f)       // deep, calm
+                t.setSpeechRate(0.92f)
+                t.setPitch(0.82f)
             }
             PersonalityEngine.Mode.PROFESSIONAL -> {
                 t.setSpeechRate(1.0f)
@@ -94,10 +90,15 @@ class VoiceEngine(private val context: Context) : TextToSpeech.OnInitListener {
         }
     }
 
-    /**
-     * Speak [text]. [onDone] always fires on the main thread when done or on error.
-     */
     fun speak(text: String, onDone: (() -> Unit)? = null) {
+        val prefs = context.getSharedPreferences("javis_voice_prefs", Context.MODE_PRIVATE)
+        val engine = prefs.getString("tts_engine", "system") ?: "system"
+
+        if (engine == "eleven") {
+            elevenTts?.speak(text, onDone)
+            return
+        }
+
         if (!ttsReady) {
             mainThread.post { onDone?.invoke() }
             return
@@ -124,22 +125,41 @@ class VoiceEngine(private val context: Context) : TextToSpeech.OnInitListener {
         tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
     }
 
-    /** Refresh voice settings when personality changes. */
     fun refreshPersonality() {
-        tts?.let { applyPersonalityVoice(it) }
+        val prefs = context.getSharedPreferences("javis_voice_prefs", Context.MODE_PRIVATE)
+        val engine = prefs.getString("tts_engine", "system") ?: "system"
+        if (engine == "eleven") {
+            ttsReady = false
+            tts?.shutdown()
+            tts = null
+            return
+        }
+        if (tts == null) {
+            initTTS()
+        } else {
+            tts?.let { applyPersonalityVoice(it) }
+        }
     }
 
     fun stopSpeaking() {
         tts?.stop()
+        elevenTts?.stop()
         mainThread.post { onSpeakingEnd?.invoke() }
     }
 
     fun isSpeaking() = tts?.isSpeaking == true
-    fun isReady() = ttsReady
+    fun isReady(): Boolean {
+        val prefs = context.getSharedPreferences("javis_voice_prefs", Context.MODE_PRIVATE)
+        val engine = prefs.getString("tts_engine", "system") ?: "system"
+        return if (engine == "eleven") {
+            elevenTts?.isReady() == true
+        } else ttsReady
+    }
 
     fun shutdown() {
         tts?.stop()
         tts?.shutdown()
         ttsReady = false
+        elevenTts?.shutdown()
     }
 }

@@ -8,3 +8,5 @@
 .externalNativeBuild
 .cxx
 local.properties
+gradle/wrapper/gradle-8.6*
+gradle/wrapper/*.zip

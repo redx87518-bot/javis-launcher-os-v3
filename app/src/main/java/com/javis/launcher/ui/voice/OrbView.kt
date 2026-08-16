@@ -6,7 +6,7 @@ import android.graphics.*
 import android.util.AttributeSet
 import android.view.View
 import android.view.animation.LinearInterpolator
-import com.javis.launcher.models.VoiceState
+import com.javis.launcher.util.ThemeManager
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.sin
@@ -24,6 +24,7 @@ class OrbView @JvmOverloads constructor(
     private var rotationAngle = 0f
     private var glowAlpha = 120
     private var currentState = VoiceState.IDLE
+    private var themeColor = ThemeManager.orbColor(ThemeManager.getTheme(context))
 
     private val pulseAnimator = ValueAnimator.ofFloat(0.9f, 1.1f).apply {
         duration = 1200; repeatCount = ValueAnimator.INFINITE
@@ -93,7 +94,7 @@ class OrbView @JvmOverloads constructor(
         val radius = min(width, height) / 2f * 0.75f
 
         // Outer glow
-        val glowColor = stateGlowColor()
+        val glowColor = themeColor
         paintGlow.color = Color.argb(glowAlpha / 3, Color.red(glowColor), Color.green(glowColor), Color.blue(glowColor))
         canvas.drawCircle(cx, cy, radius * pulseScale * 1.25f, paintGlow)
 
@@ -120,7 +121,7 @@ class OrbView @JvmOverloads constructor(
 
         // Core circle
         val coreGradient = RadialGradient(cx, cy, radius * 0.7f * pulseScale,
-            intArrayOf(Color.WHITE, Color.argb(220, 200, 220, 255), Color.argb(180, 30, 30, 60)),
+            intArrayOf(Color.WHITE, Color.argb(220, Color.red(glowColor), Color.green(glowColor), Color.blue(glowColor)), Color.argb(180, 30, 30, 60)),
             floatArrayOf(0f, 0.4f, 1f), Shader.TileMode.CLAMP)
         paintCore.shader = coreGradient
         canvas.drawCircle(cx, cy, radius * 0.7f * pulseScale, paintCore)
@@ -137,8 +138,8 @@ class OrbView @JvmOverloads constructor(
     }
 
     private fun stateGlowColor() = when (currentState) {
-        VoiceState.IDLE -> Color.rgb(180, 0, 0)
-        VoiceState.LISTENING -> Color.rgb(220, 20, 20)
+        VoiceState.IDLE -> themeColor
+        VoiceState.LISTENING -> themeColor
         VoiceState.THINKING -> Color.rgb(255, 140, 0)
         VoiceState.SPEAKING -> Color.rgb(0, 200, 80)
         VoiceState.EXECUTING -> Color.rgb(0, 150, 255)

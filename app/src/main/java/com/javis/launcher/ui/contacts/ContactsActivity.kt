@@ -39,13 +39,14 @@ class ContactsActivity : AppCompatActivity() {
     }
 
     private fun loadContacts() {
+        val mem = memory ?: return
         val rvFrequent = findViewById<RecyclerView>(R.id.rv_frequent)
         val rvAll = findViewById<RecyclerView>(R.id.rv_all_contacts)
         rvFrequent.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         rvAll.layoutManager = LinearLayoutManager(this)
 
         lifecycleScope.launch {
-            val topContacts = memory.getTopContacts(6)
+            val topContacts = mem.getTopContacts(6)
             val favoriteIds = topContacts.map { it.contactId }.toSet()
 
             val allContacts = withContext(Dispatchers.IO) { readAllContacts() }
@@ -84,7 +85,8 @@ class ContactsActivity : AppCompatActivity() {
     }
 
     private fun call(contact: Contact) {
-        memory.trackContactCall(contact)
+        val mem = memory ?: return
+        mem.trackContactCall(contact)
         val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:${contact.phone}"))
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CALL_PHONE) == PackageManager.PERMISSION_GRANTED) {
             startActivity(intent)

@@ -2,6 +2,7 @@ package com.javis.launcher
 
 import android.app.Application
 import android.speech.tts.TextToSpeech
+import android.util.Log
 import com.javis.launcher.engine.memory.MemoryEngine
 import com.javis.launcher.engine.voice.VoiceEngine
 
@@ -12,13 +13,19 @@ class JavisApplication : Application() {
             private set
     }
 
-    lateinit var memoryEngine: MemoryEngine
-    lateinit var voiceEngine: VoiceEngine
+    var memoryEngine: MemoryEngine? = null
+        private set
+    var voiceEngine: VoiceEngine? = null
+        private set
 
     override fun onCreate() {
         super.onCreate()
         instance = this
-        memoryEngine = MemoryEngine(this)
-        voiceEngine = VoiceEngine(this)
+        try {
+            memoryEngine = MemoryEngine(this)
+            voiceEngine = VoiceEngine(this)
+        } catch (e: Exception) {
+            Log.e("JavisApplication", "Failed to initialize engines", e)
+        }
     }
 }

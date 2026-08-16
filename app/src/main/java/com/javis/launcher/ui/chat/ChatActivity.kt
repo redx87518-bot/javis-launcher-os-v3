@@ -50,13 +50,19 @@ class ChatActivity : AppCompatActivity() {
         rvChat.adapter = adapter
 
         // V4: load up to 50 recent messages for context
-        lifecycleScope.launch {
-            val history = memory.getRecentHistory(50)
-            history.forEach { msg ->
-                messages.add(ChatMessage(msg.content, msg.role == "user"))
+        val mem = memory
+        if (mem != null) {
+            lifecycleScope.launch {
+                val history = mem.getRecentHistory(50)
+                val start = messages.size
+                history.forEach { msg ->
+                    messages.add(ChatMessage(msg.content, msg.role == "user"))
+                }
+                if (messages.size > start) {
+                    adapter.notifyItemRangeInserted(start, messages.size - start)
+                }
+                if (messages.isNotEmpty()) rvChat.scrollToPosition(messages.size - 1)
             }
-            adapter.notifyDataSetChanged()
-            if (messages.isNotEmpty()) rvChat.scrollToPosition(messages.size - 1)
         }
 
         val provider = ai.getActiveProvider()
@@ -79,8 +85,12 @@ class ChatActivity : AppCompatActivity() {
 
         addMessage(text, isUser = true)
 
+        val mem = memory
+        val v = voice
+        if (mem == null) return
+
         lifecycleScope.launch {
-            memory.saveMessage("user", text)
+            mem.saveMessage("user", text)
             ContextEngine.inferAndUpdateGoal(text)
 
             val thought = ThinkingEngine.think(text)
@@ -94,7 +104,7 @@ class ChatActivity : AppCompatActivity() {
                         is ExecutionResult.NeedsConfirmation -> result.message
                         is ExecutionResult.Failure           ->
                             if (result.message == "CHAT") {
-                                val history = memory.getRecentHistory(50)
+                                val history = mem.getRecentHistory(50)
                                 ai.chat(thought.enrichedPrompt ?: text, history)
                             } else result.message
                     }
@@ -107,14 +117,14 @@ class ChatActivity : AppCompatActivity() {
                 }
                 ThinkingEngine.Category.AI_CONVERSATION,
                 ThinkingEngine.Category.HYBRID -> {
-                    val history = memory.getRecentHistory(50)
+                    val history = mem.getRecentHistory(50)
                     ai.chat(thought.enrichedPrompt ?: text, history)
                 }
             }
 
-            memory.saveMessage("assistant", response)
+            mem.saveMessage("assistant", response)
             addMessage(response, isUser = false)
-            voice.speak(response)
+            v?.speak(response)
         }
     }
 

@@ -1,7 +1,9 @@
 package com.javis.launcher.engine.ai
 
 import android.content.Context
-import android.content.SharedPreferences
+import android.util.Log
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKeys
 import com.javis.launcher.engine.PersonalityEngine
 import com.javis.launcher.models.AIProvider
 import com.javis.launcher.models.ConversationMessage
@@ -19,11 +21,22 @@ import java.util.concurrent.TimeUnit
 class AIEngine(private val context: Context) {
 
     private val prefs: SharedPreferences =
-        context.getSharedPreferences("javis_ai_prefs", Context.MODE_PRIVATE)
+        try {
+            EncryptedSharedPreferences.create(
+                "javis_ai_prefs",
+                MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC),
+                context,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+        } catch (e: Exception) {
+            Log.e("AIEngine", "EncryptedSharedPreferences failed, falling back to plain", e)
+            context.getSharedPreferences("javis_ai_prefs", Context.MODE_PRIVATE)
+        }
 
     private val http = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS)
-        .readTimeout(60, TimeUnit.SECONDS)   // longer — JAVIS gives detailed answers
+        .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(20, TimeUnit.SECONDS)
         .build()
 
@@ -45,6 +58,7 @@ CORE RULES:
 - When asked to explain something complex, use analogies and examples.
 - Never say "I cannot" when you mean "I don't know" — be precise.
 - Stay in character as JAVIS at all times.
+- If the user asks you to do something on their device (open an app, set an alarm, call someone), tell them you've noted it and the local system will handle it, or simply describe the action in past tense.
 """.trimIndent()
 
     // ─── Provider config ──────────────────────────────────────────────────

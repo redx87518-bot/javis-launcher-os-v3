@@ -26,8 +26,10 @@ class VoiceDiagnosticsActivity : AppCompatActivity() {
         val tvError = findViewById<TextView>(R.id.tv_last_error)
         val btnTest = findViewById<Button>(R.id.btn_test_voice)
 
-        tvEngine.text = "Engine: Android TTS (built-in)"
-        tvStatus.text = if (voice.isReady()) "Status: Ready" else "Status: Initializing..."
+        val prefs = getSharedPreferences("javis_voice_prefs", MODE_PRIVATE)
+        val engineName = if (prefs.getString("tts_engine", "system") == "eleven") "Eleven Labs" else "Android TTS"
+        tvEngine.text = "Engine: $engineName"
+        tvStatus.text = if (voice?.isReady() == true) "Status: Ready" else "Status: Initializing..."
         tvOnline.text = "Online TTS: Available"
         tvOffline.text = "Offline TTS: Android TTS"
 
@@ -36,7 +38,7 @@ class VoiceDiagnosticsActivity : AppCompatActivity() {
 
         btnTest.setOnClickListener {
             tvStatus.text = "Status: Speaking..."
-            voice.speak("JAVIS voice system is working correctly. Ready for your commands, Sir.") {
+            voice?.speak("JAVIS voice system is working correctly. Ready for your commands, Sir.") {
                 runOnUiThread { tvStatus.text = "Status: Ready" }
             }
         }
