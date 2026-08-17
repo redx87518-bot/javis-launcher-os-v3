@@ -106,6 +106,8 @@ enum class JavisAction {
     WEATHER_QUERY,         // V5: "weather", "forecast"
     NEWS_BRIEFING,         // V5: "news", "headlines"
     AUTOMATION_ROUTINE,    // V5: "activate routine", "morning mode"
+    WHATSAPP_MESSAGE,      // V5: "send whatsapp", "reply to whatsapp"
+    WHATSAPP_READ,         // V5: "read whatsapp messages", "any new whatsapp"
     UNKNOWN
 }
 

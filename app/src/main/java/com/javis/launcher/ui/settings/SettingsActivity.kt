@@ -10,6 +10,7 @@ import com.javis.launcher.JavisApplication
 import com.javis.launcher.R
 import com.javis.launcher.engine.PersonalityEngine
 import com.javis.launcher.engine.RoutineLearningEngine
+import com.javis.launcher.engine.WhatsAppEngine
 import com.javis.launcher.engine.ai.AIEngine
 import com.javis.launcher.engine.voice.VoiceEngine
 import com.javis.launcher.models.AIProvider
@@ -39,6 +40,7 @@ class SettingsActivity : AppCompatActivity() {
         setupVoiceSection()
         setupMemorySection()
         setupRoutineSection()
+        setupWhatsAppSection()
         setupDiagnosticsSection()
     }
 
@@ -290,6 +292,40 @@ class SettingsActivity : AppCompatActivity() {
             val apps     = memory.getTopApps(3)
             val contacts = memory.getTopContacts(3)
             tvInsights.text = RoutineLearningEngine.getInsightText(apps, contacts)
+        }
+    }
+
+    // ─── WhatsApp Integration (V5) ─────────────────────────────────────────
+    private fun setupWhatsAppSection() {
+        val switchEnabled = findViewById<Switch>(R.id.switch_whatsapp)
+        val tvWhatsAppStatus = findViewById<TextView>(R.id.tv_whatsapp_status)
+        val btnOpenNotificationSettings = findViewById<Button>(R.id.btn_open_notification_settings)
+
+        val prefs = getSharedPreferences("javis_whatsapp_prefs", MODE_PRIVATE)
+        val isEnabled = prefs.getBoolean("enabled", false)
+        switchEnabled.isChecked = isEnabled
+        WhatsAppEngine.setEnabled(isEnabled)
+        tvWhatsAppStatus.text = if (isEnabled) "Enabled" else "Disabled"
+
+        switchEnabled.setOnCheckedChangeListener { _, isChecked ->
+            WhatsAppEngine.setEnabled(isChecked)
+            prefs.edit().putBoolean("enabled", isChecked).apply()
+            tvWhatsAppStatus.text = if (isChecked) "Enabled" else "Disabled"
+            Toast.makeText(this, "WhatsApp integration ${if (isChecked) "enabled" else "disabled"}", Toast.LENGTH_SHORT).show()
+        }
+
+        btnOpenNotificationSettings.setOnClickListener {
+            try {
+                val intent = Intent("android.settings.ACTION_NOTIFICATION_LISTENER_SETTINGS")
+                startActivity(intent)
+            } catch (e: Exception) {
+                try {
+                    val intent = Intent("android.settings.NOTIFICATION_LISTENER_SETTINGS")
+                    startActivity(intent)
+                } catch (e2: Exception) {
+                    Toast.makeText(this, "Please enable notification access in Settings > Apps > Special Access", Toast.LENGTH_LONG).show()
+                }
+            }
         }
     }
 

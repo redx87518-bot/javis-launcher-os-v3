@@ -21,6 +21,7 @@ import com.javis.launcher.engine.PersonalityEngine
 import com.javis.launcher.engine.ProactiveIntelligenceEngine
 import com.javis.launcher.engine.RoutineLearningEngine
 import com.javis.launcher.engine.SystemDiagnosticsEngine
+import com.javis.launcher.engine.WhatsAppEngine
 import com.javis.launcher.receivers.UnlockReceiver
 import com.javis.launcher.ui.alarms.AlarmsActivity
 import com.javis.launcher.ui.chat.ChatActivity
@@ -65,6 +66,28 @@ class HomeActivity : AppCompatActivity() {
 
         setupClock()
         setupNavButtons()
+        observeWhatsAppMessages()
+    }
+
+    private fun observeWhatsAppMessages() {
+        lifecycleScope.launch {
+            WhatsAppEngine.messages.collect { messages ->
+                if (messages.isNotEmpty() && WhatsAppEngine.isEnabled.value) {
+                    val latest = messages.first()
+                    val time = SimpleDateFormat("hh:mm a", Locale.getDefault())
+                        .format(Date(latest.timestamp))
+                    tvStatusLine.text = "New WhatsApp from ${latest.contactName}: ${latest.message.take(30)}... ($time)"
+                }
+            }
+        }
+
+        lifecycleScope.launch {
+            WhatsAppEngine.isEnabled.collect { enabled ->
+                if (!enabled) {
+                    tvStatusLine.text = "All systems operational. How can I help?"
+                }
+            }
+        }
     }
 
     override fun onStart() {

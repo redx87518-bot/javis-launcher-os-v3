@@ -46,7 +46,9 @@ object ThinkingEngine {
             JavisAction.SYSTEM_DIAGNOSTICS,
             JavisAction.WEATHER_QUERY,
             JavisAction.NEWS_BRIEFING,
-            JavisAction.AUTOMATION_ROUTINE ->
+            JavisAction.AUTOMATION_ROUTINE,
+            JavisAction.WHATSAPP_READ,
+            JavisAction.WHATSAPP_MESSAGE ->
                 ThinkingResult(Category.LOCAL_ACTION, intent)
 
             // ── Calls: local, context-aware ────────────────────────────

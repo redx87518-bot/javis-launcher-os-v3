@@ -98,6 +98,21 @@ object IntentAnalyzer {
             return IntentResult(action = JavisAction.OPEN_SETTINGS, confidence = 0.8f)
         }
 
+        // ─── WhatsApp Read ────────────────────────────────────────────────
+        if (matchesWhatsAppRead(text)) {
+            return IntentResult(action = JavisAction.WHATSAPP_READ, confidence = 0.9f)
+        }
+
+        // ─── WhatsApp Message ─────────────────────────────────────────────
+        if (matchesWhatsAppMessage(text)) {
+            val params = extractWhatsAppParams(text)
+            return IntentResult(
+                action = JavisAction.WHATSAPP_MESSAGE,
+                params = params,
+                confidence = 0.9f
+            )
+        }
+
         // ─── Default: Chat ─────────────────────────────────────────────────
         return IntentResult(action = JavisAction.CHAT, confidence = 0.5f)
     }
@@ -266,5 +281,67 @@ object IntentAnalyzer {
         text.startsWith("remember that ") ->
             "custom_${System.currentTimeMillis()}" to text.removePrefix("remember that ").trim()
         else -> "custom_info" to text
+    }
+
+    // ─── WhatsApp ─────────────────────────────────────────────────────────
+    private fun matchesWhatsAppRead(text: String): Boolean {
+        val patterns = listOf(
+            "whatsapp", "read whatsapp", "any new whatsapp",
+            "check whatsapp", "whatsapp messages", "new messages",
+            "any messages", "read messages", "check messages"
+        )
+        return patterns.any { text.contains(it) } &&
+                (text.contains("message") || text.contains("whatsapp") || text.contains("new"))
+    }
+
+    private fun matchesWhatsAppMessage(text: String): Boolean {
+        val patterns = listOf(
+            "send whatsapp", "whatsapp", "message on whatsapp",
+            "text on whatsapp", "send message", "reply on whatsapp",
+            "reply to whatsapp", "send a whatsapp", "whatsapp message"
+        )
+        return patterns.any { text.contains(it) }
+    }
+
+    private fun extractWhatsAppParams(text: String): Map<String, String> {
+        val params = mutableMapOf<String, String>()
+
+        val contactPatterns = listOf(
+            Regex("""to\s+([""']?)(.+?)\1\s+(?:saying|that|:""", RegexOption.IGNORE_CASE),
+            Regex("""to\s+(\w+)""", RegexOption.IGNORE_CASE),
+            Regex("""message\s+(\w+)""", RegexOption.IGNORE_CASE),
+            Regex("""send\s+(?:a\s+)?(?:message\s+)?(?:to\s+)?(\w+)""", RegexOption.IGNORE_CASE)
+        )
+
+        for (pattern in contactPatterns) {
+            val match = pattern.find(text)
+            if (match != null) {
+                params["contactName"] = match.groupValues.last().trim()
+                break
+            }
+        }
+
+        val messagePatterns = listOf(
+            Regex("""(?:saying|that|:)\s+(.+)""", RegexOption.IGNORE_CASE),
+            Regex("""(?:message|text)\s+(?:saying\s+)?(.+)""", RegexOption.IGNORE_CASE)
+        )
+
+        for (pattern in messagePatterns) {
+            val match = pattern.find(text)
+            if (match != null) {
+                params["message"] = match.groupValues[1].trim()
+                break
+            }
+        }
+
+        if (params.containsKey("contactName") && params.containsKey("message")) {
+            params["action"] = "send"
+        } else if (params.containsKey("contactName")) {
+            params["action"] = "open"
+        } else {
+            params["action"] = "read"
+        }
+
+        return params
     }
 }

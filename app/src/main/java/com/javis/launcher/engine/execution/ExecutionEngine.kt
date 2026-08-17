@@ -14,6 +14,7 @@ import com.javis.launcher.engine.PersonalityEngine
 import com.javis.launcher.engine.ProactiveIntelligenceEngine
 import com.javis.launcher.engine.RoutineLearningEngine
 import com.javis.launcher.engine.SystemDiagnosticsEngine
+import com.javis.launcher.engine.WhatsAppEngine
 import com.javis.launcher.engine.context.ContextEngine
 import com.javis.launcher.engine.memory.MemoryEngine
 import com.javis.launcher.models.*
@@ -48,6 +49,8 @@ class ExecutionEngine(private val context: Context) {
             JavisAction.NEWS_BRIEFING      -> newsBriefing()
             JavisAction.AUTOMATION_ROUTINE -> automationRoutine(intent.params["routine"] ?: "morning")
             JavisAction.ROUTINE_QUERY      -> routineQuery()
+            JavisAction.WHATSAPP_READ      -> whatsAppRead()
+            JavisAction.WHATSAPP_MESSAGE   -> whatsAppMessage(intent.params)
             JavisAction.OPEN_SETTINGS -> {
                 val i = Intent(android.provider.Settings.ACTION_SETTINGS)
                     .apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
@@ -344,5 +347,86 @@ class ExecutionEngine(private val context: Context) {
             else -> ProactiveIntelligenceEngine.generateMorningBriefing(mem)
         }
         ExecutionResult.Success(briefing)
+    }
+
+    private suspend fun whatsAppRead(): ExecutionResult = withContext(Dispatchers.IO) {
+        if (!WhatsAppEngine.isEnabled.value) {
+            return@withContext ExecutionResult.Failure(
+                "WhatsApp integration is disabled, Sir. Please enable it in Settings."
+            )
+        }
+
+        if (!WhatsAppEngine.isWhatsAppInstalled(context)) {
+            return@withContext ExecutionResult.Failure(
+                "WhatsApp is not installed on this device, Sir."
+            )
+        }
+
+        val messages = WhatsAppEngine.getLatestMessages(5)
+        if (messages.isEmpty()) {
+            return@withContext ExecutionResult.Success(
+                "No new WhatsApp messages, Sir. You're all caught up."
+            )
+        }
+
+        val report = messages.joinToString("\n") { msg ->
+            val time = java.text.SimpleDateFormat("hh:mm a", java.util.Locale.getDefault())
+                .format(java.util.Date(msg.timestamp))
+            "${msg.contactName}: ${msg.message} ($time)"
+        }
+
+        ExecutionResult.Success("New WhatsApp messages, Sir:\n$report")
+    }
+
+    private suspend fun whatsAppMessage(params: Map<String, String>): ExecutionResult = withContext(Dispatchers.Main) {
+        if (!WhatsAppEngine.isEnabled.value) {
+            return@withContext ExecutionResult.Failure(
+                "WhatsApp integration is disabled, Sir. Please enable it in Settings."
+            )
+        }
+
+        if (!WhatsAppEngine.isWhatsAppInstalled(context)) {
+            return@withContext ExecutionResult.Failure(
+                "WhatsApp is not installed on this device, Sir."
+            )
+        }
+
+        val contactName = params["contactName"]
+        val message = params["message"]
+        val action = params["action"] ?: "send"
+
+        when (action) {
+            "open" -> {
+                if (contactName.isNullOrBlank()) {
+                    return@withContext ExecutionResult.Failure(
+                        "Who should I message on WhatsApp, Sir?"
+                    )
+                }
+                WhatsAppEngine.openChat(context, contactName)
+                ExecutionResult.Success(
+                    "Opening WhatsApp chat with $contactName, Sir."
+                )
+            }
+            "send" -> {
+                if (contactName.isNullOrBlank()) {
+                    return@withContext ExecutionResult.Failure(
+                        "Who should I send the WhatsApp message to, Sir?"
+                    )
+                }
+                if (message.isNullOrBlank()) {
+                    return@withContext ExecutionResult.Failure(
+                        "What message would you like me to send to $contactName, Sir?"
+                    )
+                }
+                WhatsAppEngine.sendMessage(context, contactName, message)
+                ExecutionResult.Success(
+                    "Opening WhatsApp to send message to $contactName, Sir."
+                )
+            }
+            else -> {
+                WhatsAppEngine.openChat(context, "")
+                ExecutionResult.Success("Opening WhatsApp, Sir.")
+            }
+        }
     }
 }
