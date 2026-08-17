@@ -137,10 +137,9 @@ class ExecutionEngine(private val context: Context) {
                 ExecutionResult.Failure("I couldn't find anyone named \"$name\" in your contacts.")
             contacts.size == 1 -> {
                 val contact = contacts.first()
-                withContext(Dispatchers.Main) { 
-                    if (!initiateCall(contact)) {
-                        return@withContext ExecutionResult.Failure("Memory engine not initialized.")
-                    }
+                val callSuccess = withContext(Dispatchers.Main) { initiateCall(contact) }
+                if (!callSuccess) {
+                    return@withContext ExecutionResult.Failure("Memory engine not initialized.")
                 }
                 ExecutionResult.Success("Calling ${contact.name}.")
             }
