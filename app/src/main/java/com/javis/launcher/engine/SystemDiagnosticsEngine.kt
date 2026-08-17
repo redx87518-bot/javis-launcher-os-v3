@@ -16,16 +16,16 @@ import java.io.InputStreamReader
 object SystemDiagnosticsEngine {
 
     data class SystemStatus(
-        val batteryLevel: Int = 0,
-        val isCharging: Boolean = false,
-        val cpuUsage: Float = 0f,
-        val memoryUsed: Long = 0,
-        val memoryTotal: Long = 0,
-        val storageUsed: Long = 0,
-        val storageTotal: Long = 0,
-        val networkType: String = "Unknown",
-        val uptime: Long = 0,
-        val temperatureCelsius: Float? = null
+        var batteryLevel: Int = 0,
+        var isCharging: Boolean = false,
+        var cpuUsage: Float = 0f,
+        var memoryUsed: Long = 0,
+        var memoryTotal: Long = 0,
+        var storageUsed: Long = 0,
+        var storageTotal: Long = 0,
+        var networkType: String = "Unknown",
+        var uptime: Long = 0,
+        var temperatureCelsius: Float? = null
     )
 
     suspend fun getSystemStatus(): SystemStatus = withContext(Dispatchers.IO) {
