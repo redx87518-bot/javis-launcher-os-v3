@@ -205,13 +205,19 @@ object WhatsAppEngine {
             Log.e(TAG, "Failed to save contact phone", e)
         }
     }
+
+    fun removeMessage(id: String) {
+        val current = _messages.value.toMutableList()
+        current.removeAll { it.id == id }
+        _messages.value = current
+    }
 }
 
 class WhatsAppNotificationListener : NotificationListenerService() {
 
     override fun onListenerConnected() {
         super.onListenerConnected()
-        Log.d(TAG, "WhatsApp notification listener connected")
+        Log.d(WhatsAppEngine.TAG, "WhatsApp notification listener connected")
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -219,15 +225,13 @@ class WhatsAppNotificationListener : NotificationListenerService() {
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
-        if (sbn.packageName == WHATSAPP_PACKAGE || sbn.packageName == WHATSAPP_BUSINESS_PACKAGE) {
-            val current = WhatsAppEngine.messages.value.toMutableList()
-            current.removeAll { it.id == sbn.key }
-            WhatsAppEngine.messages.value = current
+        if (sbn.packageName == WhatsAppEngine.WHATSAPP_PACKAGE || sbn.packageName == WhatsAppEngine.WHATSAPP_BUSINESS_PACKAGE) {
+            WhatsAppEngine.removeMessage(sbn.key)
         }
     }
 
     override fun onListenerDisconnected() {
         super.onListenerDisconnected()
-        Log.d(TAG, "WhatsApp notification listener disconnected")
+        Log.d(WhatsAppEngine.TAG, "WhatsApp notification listener disconnected")
     }
 }
