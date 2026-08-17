@@ -86,37 +86,69 @@ CORE RULES:
 
     fun isAutoMode(): Boolean {
         val name = prefs.getString("active_provider", "AUTO")
-        return name == "AUTO" || name == null
+        return name == "AUTO" || name == "AUTO_FREE" || name == null
     }
 
     fun setAutoMode(enabled: Boolean) {
         prefs.edit()
-            .putString("active_provider", if (enabled) "AUTO" else AIProvider.OPENROUTER.name)
+            .putString("active_provider", if (enabled) "AUTO_FREE" else AIProvider.OPENROUTER.name)
             .apply()
     }
+
+    private val freeModels = mapOf(
+        AIProvider.OPENROUTER to listOf(
+            "google/gemini-2.0-flash-exp:free",
+            "meta-llama/llama-4-maverick:free",
+            "mistralai/mistral-small-24b-instruct-2501:free"
+        ),
+        AIProvider.GROQ to listOf(
+            "llama-3.1-8b-instant",
+            "llama3-8b-8192",
+            "gemma2-9b-it"
+        ),
+        AIProvider.DEEPSEEK to listOf(
+            "deepseek-chat",
+            "deepseek-reasoner"
+        )
+    )
 
     private fun autoSelectBestProvider(): AIProvider? {
         val configured = AIProvider.values().filter { getProviderConfig(it) != null }
         if (configured.isEmpty()) return null
 
-        return when {
-            configured.contains(AIProvider.OPENROUTER) -> AIProvider.OPENROUTER
-            configured.contains(AIProvider.GROQ) -> AIProvider.GROQ
-            configured.contains(AIProvider.DEEPSEEK) -> AIProvider.DEEPSEEK
-            else -> configured.first()
+        val freePriority = configured.sortedByDescending { provider ->
+            val config = getProviderConfig(provider)
+            val model = config?.model ?: defaultModel(provider)
+            val isFreeModel = freeModels[provider]?.any { freeModel ->
+                model.equals(freeModel, ignoreCase = true)
+            } ?: false
+
+            val priorityScore = when (provider) {
+                AIProvider.GROQ -> if (isFreeModel) 30 else 20
+                AIProvider.DEEPSEEK -> if (isFreeModel) 25 else 15
+                AIProvider.OPENROUTER -> if (isFreeModel) 20 else 10
+            }
+            priorityScore
         }
+
+        return freePriority.firstOrNull()
     }
 
     fun getProviderConfig(provider: AIProvider): ProviderConfig? {
         val key = prefs.getString("provider_${provider.name}_key", null) ?: return null
-        val model = prefs.getString("provider_${provider.name}_model", defaultModel(provider))
+        val model = prefs.getString("provider_${provider.name}_model", null)
+            ?: if (isAutoMode()) autoSelectFreeModel(provider) else defaultModel(provider)
             ?: defaultModel(provider)
         return ProviderConfig(provider, key, model)
     }
 
+    private fun autoSelectFreeModel(provider: AIProvider): String {
+        return freeModels[provider]?.firstOrNull() ?: defaultModel(provider)
+    }
+
     private fun defaultModel(p: AIProvider) = when (p) {
-        AIProvider.OPENROUTER -> "openai/gpt-4o-mini"
-        AIProvider.GROQ       -> "llama3-70b-8192"
+        AIProvider.OPENROUTER -> "google/gemini-2.0-flash-exp:free"
+        AIProvider.GROQ       -> "llama-3.1-8b-instant"
         AIProvider.DEEPSEEK   -> "deepseek-chat"
     }
 
