@@ -117,8 +117,6 @@ class HomeActivity : AppCompatActivity() {
             }
         }
     }
-        }
-    }
 
     // ─── Provider badge ───────────────────────────────────────────────────
     private fun updateProviderBadge() {
