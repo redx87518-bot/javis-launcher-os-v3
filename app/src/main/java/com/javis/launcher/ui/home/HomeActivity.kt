@@ -18,7 +18,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.javis.launcher.JavisApplication
 import com.javis.launcher.R
 import com.javis.launcher.engine.PersonalityEngine
+import com.javis.launcher.engine.ProactiveIntelligenceEngine
 import com.javis.launcher.engine.RoutineLearningEngine
+import com.javis.launcher.engine.SystemDiagnosticsEngine
 import com.javis.launcher.receivers.UnlockReceiver
 import com.javis.launcher.ui.alarms.AlarmsActivity
 import com.javis.launcher.ui.chat.ChatActivity
@@ -102,17 +104,19 @@ class HomeActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             delay(600)
-            val name      = mem.getNickname() ?: mem.getUserName()
-            val battery   = getBatteryLevel()
-            val missed    = getMissedCallCount()
+            val name = mem.getNickname() ?: mem.getUserName()
+            val battery = getBatteryLevel()
+            val missed = getMissedCallCount()
             val unreadSms = getUnreadSmsCount()
-            val greeting  = PersonalityEngine.welcomeMessage(name, battery, missed, unreadSms)
+            val greeting = PersonalityEngine.welcomeMessage(name, battery, missed, unreadSms)
             tvStatusLine.text = greeting
             if (v.isReady()) {
                 v.speak(greeting)
             } else {
                 Log.d("HomeActivity", "Voice not ready, skipping speech")
             }
+        }
+    }
         }
     }
 
@@ -162,12 +166,28 @@ class HomeActivity : AppCompatActivity() {
             }
             tvGreeting.text = "$greet$address."
 
-            // Routine learning suggestion as status line
-            val suggestions = RoutineLearningEngine.getSuggestions(mem, this@HomeActivity)
-            tvStatusLine.text = if (suggestions.isNotEmpty()) {
-                suggestions.first().text
+            val proactiveSuggestions = ProactiveIntelligenceEngine.getProactiveSuggestions(mem, this@HomeActivity)
+            val routineSuggestions = RoutineLearningEngine.getSuggestions(mem, this@HomeActivity)
+
+            val allSuggestions = (proactiveSuggestions + routineSuggestions.map { 
+                com.javis.launcher.engine.ProactiveIntelligenceEngine.ProactiveBriefing(it.text, emptyList(), it.priority) 
+            }).sortedByDescending { it.priority }
+
+            tvStatusLine.text = if (allSuggestions.isNotEmpty()) {
+                allSuggestions.first().headline
             } else {
                 "All systems operational. How can I help?"
+            }
+
+            if (hour in 6..9) {
+                val briefing = ProactiveIntelligenceEngine.generateMorningBriefing(mem)
+                tvStatusLine.text = briefing
+            } else if (hour in 12..14) {
+                val briefing = ProactiveIntelligenceEngine.generateAfternoonBriefing(mem)
+                tvStatusLine.text = briefing
+            } else if (hour in 20..22) {
+                val briefing = ProactiveIntelligenceEngine.generateEveningBriefing(mem)
+                tvStatusLine.text = briefing
             }
         }
     }

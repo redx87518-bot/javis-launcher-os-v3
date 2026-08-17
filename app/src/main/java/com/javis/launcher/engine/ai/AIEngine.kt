@@ -72,8 +72,39 @@ CORE RULES:
     }
 
     fun getActiveProvider(): AIProvider? {
-        val name = prefs.getString("active_provider", null) ?: return null
+        val name = prefs.getString("active_provider", null)
+        if (name == null || name == "AUTO") {
+            val autoSelected = autoSelectBestProvider()
+            if (autoSelected != null) {
+                prefs.edit().putString("active_provider", autoSelected.name).apply()
+                return autoSelected
+            }
+            return null
+        }
         return try { AIProvider.valueOf(name) } catch (e: Exception) { null }
+    }
+
+    fun isAutoMode(): Boolean {
+        val name = prefs.getString("active_provider", "AUTO")
+        return name == "AUTO" || name == null
+    }
+
+    fun setAutoMode(enabled: Boolean) {
+        prefs.edit()
+            .putString("active_provider", if (enabled) "AUTO" else AIProvider.OPENROUTER.name)
+            .apply()
+    }
+
+    private fun autoSelectBestProvider(): AIProvider? {
+        val configured = AIProvider.values().filter { getProviderConfig(it) != null }
+        if (configured.isEmpty()) return null
+
+        return when {
+            configured.contains(AIProvider.OPENROUTER) -> AIProvider.OPENROUTER
+            configured.contains(AIProvider.GROQ) -> AIProvider.GROQ
+            configured.contains(AIProvider.DEEPSEEK) -> AIProvider.DEEPSEEK
+            else -> configured.first()
+        }
     }
 
     fun getProviderConfig(provider: AIProvider): ProviderConfig? {
@@ -85,7 +116,7 @@ CORE RULES:
 
     private fun defaultModel(p: AIProvider) = when (p) {
         AIProvider.OPENROUTER -> "openai/gpt-4o-mini"
-        AIProvider.GROQ       -> "llama3-70b-8192"     // upgraded from 8b — better reasoning
+        AIProvider.GROQ       -> "llama3-70b-8192"
         AIProvider.DEEPSEEK   -> "deepseek-chat"
     }
 

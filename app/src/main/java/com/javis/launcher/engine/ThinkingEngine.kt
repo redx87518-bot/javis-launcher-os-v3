@@ -42,7 +42,11 @@ object ThinkingEngine {
             JavisAction.SET_ALARM,
             JavisAction.CLEAR_MISSED_CALLS,
             JavisAction.OPEN_SETTINGS,
-            JavisAction.SWITCH_PERSONALITY ->   // V4: personality switch
+            JavisAction.SWITCH_PERSONALITY,
+            JavisAction.SYSTEM_DIAGNOSTICS,
+            JavisAction.WEATHER_QUERY,
+            JavisAction.NEWS_BRIEFING,
+            JavisAction.AUTOMATION_ROUTINE ->
                 ThinkingResult(Category.LOCAL_ACTION, intent)
 
             // ── Calls: local, context-aware ────────────────────────────

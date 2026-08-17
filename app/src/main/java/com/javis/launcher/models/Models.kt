@@ -102,6 +102,10 @@ enum class JavisAction {
     CLEAR_MISSED_CALLS,
     SWITCH_PERSONALITY,    // V4: "switch to JARVIS mode"
     ROUTINE_QUERY,         // V4: "what should I do?" / "any suggestions?"
+    SYSTEM_DIAGNOSTICS,    // V5: "system status", "run diagnostics"
+    WEATHER_QUERY,         // V5: "weather", "forecast"
+    NEWS_BRIEFING,         // V5: "news", "headlines"
+    AUTOMATION_ROUTINE,    // V5: "activate routine", "morning mode"
     UNKNOWN
 }
 

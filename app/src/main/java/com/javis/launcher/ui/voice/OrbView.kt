@@ -94,47 +94,117 @@ class OrbView @JvmOverloads constructor(
         val cy = height / 2f
         val radius = min(width, height) / 2f * 0.75f
 
-        // Outer glow
-        val glowColor = themeColor
-        paintGlow.color = Color.argb(glowAlpha / 3, Color.red(glowColor), Color.green(glowColor), Color.blue(glowColor))
-        canvas.drawCircle(cx, cy, radius * pulseScale * 1.25f, paintGlow)
+        drawScanLines(canvas, cx, cy, radius)
+        drawHolographicGlow(canvas, cx, cy, radius)
+        drawEnergyRing(canvas, cx, cy, radius)
+        drawRotatingDashes(canvas, cx, cy, radius)
+        drawCore(canvas, cx, cy, radius)
+        drawStateIndicator(canvas, cx, cy, radius)
+    }
 
-        // Energy ring
+    private fun drawScanLines(canvas: Canvas, cx: Float, cy: Float, radius: Float) {
+        val scanPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        scanPaint.style = Paint.Style.STROKE
+        scanPaint.strokeWidth = 1f
+        scanPaint.color = Color.argb(30, 255, 255, 255)
+
+        val scanCount = 12
+        for (i in 0 until scanCount) {
+            val y = cy - radius + (i * radius * 2 / scanCount)
+            val offset = (rotationAngle * 0.3f + i * 5) % (radius * 2)
+            val alpha = (40 + 20 * sin((offset / radius * Math.PI).toFloat())).toInt().coerceIn(0, 80)
+            scanPaint.color = Color.argb(alpha, 200, 220, 255)
+            canvas.drawLine(cx - radius, y, cx + radius, y, scanPaint)
+        }
+    }
+
+    private fun drawHolographicGlow(canvas: Canvas, cx: Float, cy: Float, radius: Float) {
+        val glowColor = themeColor
+        val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+        glowPaint.style = Paint.Style.FILL
+
+        val outerGlow = RadialGradient(cx, cy, radius * 1.4f * pulseScale,
+            intArrayOf(
+                Color.argb(glowAlpha / 5, Color.red(glowColor), Color.green(glowColor), Color.blue(glowColor)),
+                Color.argb(0, Color.red(glowColor), Color.green(glowColor), Color.blue(glowColor))
+            ),
+            floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
+        glowPaint.shader = outerGlow
+        canvas.drawCircle(cx, cy, radius * 1.4f * pulseScale, glowPaint)
+
+        val midGlow = RadialGradient(cx, cy, radius * 1.15f * pulseScale,
+            intArrayOf(
+                Color.argb(glowAlpha / 4, Color.red(glowColor), Color.green(glowColor), Color.blue(glowColor)),
+                Color.argb(0, Color.red(glowColor), Color.green(glowColor), Color.blue(glowColor))
+            ),
+            floatArrayOf(0f, 1f), Shader.TileMode.CLAMP)
+        glowPaint.shader = midGlow
+        canvas.drawCircle(cx, cy, radius * 1.15f * pulseScale, glowPaint)
+    }
+
+    private fun drawEnergyRing(canvas: Canvas, cx: Float, cy: Float, radius: Float) {
+        val ringColor = themeColor
         paintRing.style = Paint.Style.STROKE
-        paintRing.strokeWidth = 4f
-        paintRing.color = glowColor
+        paintRing.strokeWidth = 3f
+        paintRing.color = ringColor
+        paintRing.alpha = glowAlpha / 2
+        canvas.drawCircle(cx, cy, radius * pulseScale * 0.95f, paintRing)
+
+        paintRing.strokeWidth = 1.5f
         paintRing.alpha = glowAlpha
         canvas.drawCircle(cx, cy, radius * pulseScale, paintRing)
+    }
 
-        // Rotating dashes on ring
+    private fun drawRotatingDashes(canvas: Canvas, cx: Float, cy: Float, radius: Float) {
         if (currentState == VoiceState.LISTENING || currentState == VoiceState.THINKING || currentState == VoiceState.SPEAKING) {
-            paintRing.strokeWidth = 6f
+            paintRing.style = Paint.Style.STROKE
+            paintRing.strokeWidth = 5f
             paintRing.alpha = 255
-            for (i in 0 until 8) {
-                val angle = Math.toRadians((rotationAngle + i * 45.0))
-                val x1 = cx + (radius - 10) * cos(angle).toFloat()
-                val y1 = cy + (radius - 10) * sin(angle).toFloat()
-                val x2 = cx + (radius + 10) * cos(angle).toFloat()
-                val y2 = cy + (radius + 10) * sin(angle).toFloat()
+
+            for (i in 0 until 12) {
+                val angle = Math.toRadians((rotationAngle + i * 30.0))
+                val innerR = radius * 0.85f
+                val outerR = radius * 1.05f
+                val x1 = cx + innerR * cos(angle).toFloat()
+                val y1 = cy + innerR * sin(angle).toFloat()
+                val x2 = cx + outerR * cos(angle).toFloat()
+                val y2 = cy + outerR * sin(angle).toFloat()
+
+                val dashAlpha = if (i % 2 == 0) 255 else 120
+                paintRing.color = themeColor
+                paintRing.alpha = dashAlpha
                 canvas.drawLine(x1, y1, x2, y2, paintRing)
             }
         }
+    }
 
-        // Core circle
-        val coreGradient = RadialGradient(cx, cy, radius * 0.7f * pulseScale,
-            intArrayOf(Color.WHITE, Color.argb(220, Color.red(glowColor), Color.green(glowColor), Color.blue(glowColor)), Color.argb(180, 30, 30, 60)),
-            floatArrayOf(0f, 0.4f, 1f), Shader.TileMode.CLAMP)
+    private fun drawCore(canvas: Canvas, cx: Float, cy: Float, radius: Float) {
+        val coreGradient = RadialGradient(cx, cy, radius * 0.65f * pulseScale,
+            intArrayOf(
+                Color.WHITE,
+                Color.argb(240, Color.red(themeColor), Color.green(themeColor), Color.blue(themeColor)),
+                Color.argb(160, 20, 25, 50)
+            ),
+            floatArrayOf(0f, 0.5f, 1f), Shader.TileMode.CLAMP)
         paintCore.shader = coreGradient
-        canvas.drawCircle(cx, cy, radius * 0.7f * pulseScale, paintCore)
+        canvas.drawCircle(cx, cy, radius * 0.65f * pulseScale, paintCore)
 
-        // State indicators (green dots)
+        val innerGlow = RadialGradient(cx, cy, radius * 0.3f * pulseScale,
+            intArrayOf(Color.WHITE, Color.argb(100, 255, 255, 255), Color.argb(0, 255, 255, 255)),
+            floatArrayOf(0f, 0.6f, 1f), Shader.TileMode.CLAMP)
+        paintCore.shader = innerGlow
+        canvas.drawCircle(cx, cy, radius * 0.3f * pulseScale, paintCore)
+    }
+
+    private fun drawStateIndicator(canvas: Canvas, cx: Float, cy: Float, radius: Float) {
         paintIndicator.color = stateIndicatorColor()
-        paintIndicator.alpha = 220
-        for (i in 0 until 4) {
-            val angle = Math.toRadians((rotationAngle * 0.5 + i * 90.0))
-            val x = cx + radius * 0.5f * cos(angle).toFloat()
-            val y = cy + radius * 0.5f * sin(angle).toFloat()
-            canvas.drawCircle(x, y, 4f, paintIndicator)
+        paintIndicator.alpha = 200
+        for (i in 0 until 6) {
+            val angle = Math.toRadians((rotationAngle * 0.3 + i * 60.0))
+            val x = cx + radius * 0.75f * cos(angle).toFloat()
+            val y = cy + radius * 0.75f * sin(angle).toFloat()
+            paintIndicator.alpha = if (i % 2 == 0) 220 else 100
+            canvas.drawCircle(x, y, 3.5f, paintIndicator)
         }
     }
 

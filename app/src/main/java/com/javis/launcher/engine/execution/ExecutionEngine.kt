@@ -11,7 +11,9 @@ import android.provider.ContactsContract
 import android.util.Log
 import com.javis.launcher.JavisApplication
 import com.javis.launcher.engine.PersonalityEngine
+import com.javis.launcher.engine.ProactiveIntelligenceEngine
 import com.javis.launcher.engine.RoutineLearningEngine
+import com.javis.launcher.engine.SystemDiagnosticsEngine
 import com.javis.launcher.engine.context.ContextEngine
 import com.javis.launcher.engine.memory.MemoryEngine
 import com.javis.launcher.models.*
@@ -41,6 +43,10 @@ class ExecutionEngine(private val context: Context) {
             JavisAction.UPDATE_MEMORY      -> updateMemory(intent.params)
             JavisAction.CLEAR_MISSED_CALLS -> clearMissedCalls()
             JavisAction.SWITCH_PERSONALITY -> switchPersonality(intent.params["mode"] ?: "JARVIS")
+            JavisAction.SYSTEM_DIAGNOSTICS -> systemDiagnostics()
+            JavisAction.WEATHER_QUERY      -> weatherQuery()
+            JavisAction.NEWS_BRIEFING      -> newsBriefing()
+            JavisAction.AUTOMATION_ROUTINE -> automationRoutine(intent.params["routine"] ?: "morning")
             JavisAction.ROUTINE_QUERY      -> routineQuery()
             JavisAction.OPEN_SETTINGS -> {
                 val i = Intent(android.provider.Settings.ACTION_SETTINGS)
@@ -307,5 +313,36 @@ class ExecutionEngine(private val context: Context) {
             else            -> mem.remember(key, value)
         }
         return ExecutionResult.Success("Got it. I've saved that to memory.")
+    }
+
+    private suspend fun systemDiagnostics(): ExecutionResult = withContext(Dispatchers.IO) {
+        val status = SystemDiagnosticsEngine.getSystemStatus()
+        val report = SystemDiagnosticsEngine.generateStatusReport(status)
+        ExecutionResult.Success(report)
+    }
+
+    private suspend fun weatherQuery(): ExecutionResult = withContext(Dispatchers.IO) {
+        val prefs = context.getSharedPreferences("javis_weather", Context.MODE_PRIVATE)
+        val lastWeather = prefs.getString("last_weather", null)
+        if (!lastWeather.isNullOrBlank()) {
+            ExecutionResult.Success("Weather update, Sir: $lastWeather")
+        } else {
+            ExecutionResult.Failure("Weather data is not yet configured, Sir. You can add a weather API key in Settings.")
+        }
+    }
+
+    private suspend fun newsBriefing(): ExecutionResult = withContext(Dispatchers.IO) {
+        ExecutionResult.Success("News briefing is not yet configured, Sir. I'm working on it.")
+    }
+
+    private suspend fun automationRoutine(routine: String): ExecutionResult = withContext(Dispatchers.IO) {
+        val mem = memory ?: return@withContext ExecutionResult.Failure("Memory engine not initialized.")
+        val briefing = when (routine.lowercase()) {
+            "morning" -> ProactiveIntelligenceEngine.generateMorningBriefing(mem)
+            "afternoon" -> ProactiveIntelligenceEngine.generateAfternoonBriefing(mem)
+            "evening" -> ProactiveIntelligenceEngine.generateEveningBriefing(mem)
+            else -> ProactiveIntelligenceEngine.generateMorningBriefing(mem)
+        }
+        ExecutionResult.Success(briefing)
     }
 }

@@ -51,46 +51,96 @@ class SettingsActivity : AppCompatActivity() {
 
     // ─── AI Provider ──────────────────────────────────────────────────────
     private fun setupProviderSection() {
-        val spinnerProvider = findViewById<Spinner>(R.id.spinner_provider)
-        val etApiKey        = findViewById<EditText>(R.id.et_api_key)
-        val etModel         = findViewById<EditText>(R.id.et_model)
-        val btnSave         = findViewById<Button>(R.id.btn_save_provider)
-        val tvStatus        = findViewById<TextView>(R.id.tv_provider_status)
+        val rgProvider = findViewById<RadioGroup>(R.id.rg_provider)
+        val etApiKey    = findViewById<EditText>(R.id.et_api_key)
+        val etModel     = findViewById<EditText>(R.id.et_model)
+        val btnSave     = findViewById<Button>(R.id.btn_save_provider)
+        val tvStatus    = findViewById<TextView>(R.id.tv_provider_status)
 
-        val providers = listOf("OpenRouter", "Groq", "DeepSeek")
-        spinnerProvider.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, providers)
-
+        val isAuto = ai.isAutoMode()
         val activeProvider = ai.getActiveProvider()
-        if (activeProvider != null) {
-            spinnerProvider.setSelection(AIProvider.values().indexOf(activeProvider))
-            val config = ai.getProviderConfig(activeProvider)
-            etApiKey.hint = "API key saved ✓"
-            etModel.setText(config?.model ?: "")
-            tvStatus.text = "Active: ${activeProvider.name}"
-        }
 
-        spinnerProvider.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
-                val p = AIProvider.values()[position]
-                val config = ai.getProviderConfig(p)
-                etModel.setText(config?.model ?: defaultModel(p))
+        rgProvider.setOnCheckedChangeListener(null)
+        rgProvider.check(
+            when {
+                isAuto -> R.id.rb_provider_auto
+                activeProvider == AIProvider.OPENROUTER -> R.id.rb_provider_openrouter
+                activeProvider == AIProvider.GROQ -> R.id.rb_provider_groq
+                activeProvider == AIProvider.DEEPSEEK -> R.id.rb_provider_deepseek
+                else -> R.id.rb_provider_auto
             }
-            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        )
+
+        updateProviderFields(activeProvider)
+
+        rgProvider.setOnCheckedChangeListener { _, checkedId ->
+            val selectedProvider = when (checkedId) {
+                R.id.rb_provider_openrouter -> AIProvider.OPENROUTER
+                R.id.rb_provider_groq -> AIProvider.GROQ
+                R.id.rb_provider_deepseek -> AIProvider.DEEPSEEK
+                else -> null
+            }
+
+            if (selectedProvider == null) {
+                ai.setAutoMode(true)
+                tvStatus.text = "Auto mode: will use best available provider"
+                etApiKey.isEnabled = true
+                etModel.isEnabled = true
+            } else {
+                ai.setAutoMode(false)
+                val config = ai.getProviderConfig(selectedProvider)
+                updateProviderFields(selectedProvider)
+                tvStatus.text = if (config != null) {
+                    "Active: ${selectedProvider.name} (configured)"
+                } else {
+                    "Active: ${selectedProvider.name} (add API key below)"
+                }
+            }
         }
 
         btnSave.setOnClickListener {
-            val provider = AIProvider.values()[spinnerProvider.selectedItemPosition]
-            val key      = etApiKey.text.toString().trim()
-            val model    = etModel.text.toString().trim()
+            val selectedProvider = when (rgProvider.checkedRadioButtonId) {
+                R.id.rb_provider_openrouter -> AIProvider.OPENROUTER
+                R.id.rb_provider_groq -> AIProvider.GROQ
+                R.id.rb_provider_deepseek -> AIProvider.DEEPSEEK
+                else -> null
+            }
+
+            val key = etApiKey.text.toString().trim()
+            val model = etModel.text.toString().trim()
+
+            if (selectedProvider == null) {
+                ai.setAutoMode(true)
+                tvStatus.text = "Auto mode enabled"
+                Toast.makeText(this, "Auto mode enabled", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
             if (key.isBlank()) {
                 Toast.makeText(this, "Enter your API key", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
-            ai.saveProvider(provider, key, model.ifBlank { defaultModel(provider) })
-            tvStatus.text = "Active: ${provider.name}"
-            Toast.makeText(this, "${provider.name} saved successfully ✓", Toast.LENGTH_SHORT).show()
+
+            ai.saveProvider(selectedProvider, key, model.ifBlank { defaultModel(selectedProvider) })
+            ai.setAutoMode(false)
+            tvStatus.text = "Active: ${selectedProvider.name}"
+            Toast.makeText(this, "${selectedProvider.name} saved successfully ✓", Toast.LENGTH_SHORT).show()
             etApiKey.text.clear()
             etApiKey.hint = "API key saved ✓"
+        }
+    }
+
+    private fun updateProviderFields(provider: AIProvider?) {
+        val etApiKey = findViewById<EditText>(R.id.et_api_key)
+        val etModel = findViewById<EditText>(R.id.et_model)
+
+        if (provider != null) {
+            val config = ai.getProviderConfig(provider)
+            etModel.setText(config?.model ?: defaultModel(provider))
+            etApiKey.hint = if (config != null) "API key saved ✓" else "API Key"
+        } else {
+            etModel.setText("")
+            etApiKey.hint = "API Key"
         }
     }
 

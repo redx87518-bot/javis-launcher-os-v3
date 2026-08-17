@@ -12,6 +12,26 @@ object IntentAnalyzer {
         // ─── Personality switching ─────────────────────────────────────────
         matchPersonalitySwitch(text)?.let { return it }
 
+        // ─── System diagnostics ────────────────────────────────────────────
+        if (matchesSystemDiagnostics(text)) {
+            return IntentResult(action = JavisAction.SYSTEM_DIAGNOSTICS, confidence = 0.95f)
+        }
+
+        // ─── Weather query ─────────────────────────────────────────────────
+        if (matchesWeatherQuery(text)) {
+            return IntentResult(action = JavisAction.WEATHER_QUERY, confidence = 0.9f)
+        }
+
+        // ─── News briefing ─────────────────────────────────────────────────
+        if (matchesNewsBriefing(text)) {
+            return IntentResult(action = JavisAction.NEWS_BRIEFING, confidence = 0.9f)
+        }
+
+        // ─── Automation routine ────────────────────────────────────────────
+        if (matchesAutomationRoutine(text)) {
+            return IntentResult(action = JavisAction.AUTOMATION_ROUTINE, confidence = 0.9f)
+        }
+
         // ─── Routine / suggestions query ──────────────────────────────────
         if (matchesRoutineQuery(text)) {
             return IntentResult(action = JavisAction.ROUTINE_QUERY, confidence = 0.9f)
@@ -146,6 +166,33 @@ object IntentAnalyzer {
     private fun matchesOpenSettings(text: String): Boolean {
         return text.contains("settings") || text.contains("configure") ||
                 text.contains("setup") || text.contains("preferences")
+    }
+
+    private fun matchesSystemDiagnostics(text: String): Boolean {
+        return text.contains("system status") || text.contains("run diagnostics") ||
+                text.contains("diagnostics") || text.contains("system health") ||
+                text.contains("check system") || text.contains("cpu") && text.contains("temperature") ||
+                text.contains("battery health") || text.contains("memory usage")
+    }
+
+    private fun matchesWeatherQuery(text: String): Boolean {
+        return text.contains("weather") || text.contains("forecast") ||
+                text.contains("temperature outside") || text.contains("is it raining") ||
+                text.contains("what's the weather") || text.contains("weather report")
+    }
+
+    private fun matchesNewsBriefing(text: String): Boolean {
+        return text.contains("news") || text.contains("headlines") ||
+                text.contains("news briefing") || text.contains("what's happening") ||
+                text.contains("current events") || text.contains("daily news")
+    }
+
+    private fun matchesAutomationRoutine(text: String): Boolean {
+        return text.contains("activate routine") || text.contains("morning mode") ||
+                text.contains("work mode") || text.contains("sleep mode") ||
+                text.contains("movie mode") || text.contains("focus mode") ||
+                text.contains("activate ") && text.contains("routine") ||
+                text.contains("enable ") && text.contains("mode")
     }
 
     private fun matchesMemoryQuery(text: String): Boolean {

@@ -65,12 +65,54 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
-                    <Spinner
-                        android:id="@+id/spinner_provider"
+                    <RadioGroup
+                        android:id="@+id/rg_provider"
                         android:layout_width="match_parent"
-                        android:layout_height="48dp"
-                        android:background="@drawable/bg_input"
-                        android:popupBackground="@color/javis_surface"/>
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:layout_marginBottom="8dp">
+
+                        <RadioButton
+                            android:id="@+id/rb_provider_auto"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:text="Auto (Recommended)"
+                            android:textColor="@color/javis_text_primary"
+                            android:textSize="13sp"
+                            android:buttonTint="@color/javis_green"
+                            android:paddingStart="8dp"
+                            android:checked="true"/>
+
+                        <RadioButton
+                            android:id="@+id/rb_provider_openrouter"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:text="OpenRouter"
+                            android:textColor="@color/javis_text_primary"
+                            android:textSize="13sp"
+                            android:buttonTint="@color/javis_red"
+                            android:paddingStart="8dp"/>
+
+                        <RadioButton
+                            android:id="@+id/rb_provider_groq"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:text="Groq"
+                            android:textColor="@color/javis_text_primary"
+                            android:textSize="13sp"
+                            android:buttonTint="@color/javis_red"
+                            android:paddingStart="8dp"/>
+
+                        <RadioButton
+                            android:id="@+id/rb_provider_deepseek"
+                            android:layout_width="match_parent"
+                            android:layout_height="48dp"
+                            android:text="DeepSeek"
+                            android:textColor="@color/javis_text_primary"
+                            android:textSize="13sp"
+                            android:buttonTint="@color/javis_red"
+                            android:paddingStart="8dp"/>
+                    </RadioGroup>
 
                     <EditText
                         android:id="@+id/et_api_key"
