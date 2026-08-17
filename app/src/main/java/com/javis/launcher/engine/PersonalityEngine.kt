@@ -125,6 +125,4 @@ object PersonalityEngine {
         Mode.PROFESSIONAL -> "Professional"
         Mode.FRIENDLY     -> "Friendly"
     }
-
-    fun getCurrentMode(): Mode = currentMode
 }
