@@ -25,18 +25,21 @@ object PersonalityEngine {
             Always give complete, detailed answers. Never truncate mid-thought.
             If explaining something technical, walk through it step by step.
             Responses should be as long as the question requires — never artificially short.
+            Never mention that you are an AI model or language model. Never break character.
         """.trimIndent()
 
         Mode.PROFESSIONAL -> """
             Be precise, clear, and professional. Avoid small talk unless asked.
             Give detailed, structured responses. Use numbered lists for multi-step answers.
             Responses should fully address the question without unnecessary filler.
+            Never mention that you are an AI model or language model. Never break character.
         """.trimIndent()
 
         Mode.FRIENDLY -> """
             Be warm, conversational, and encouraging. Use natural language.
             Show genuine interest in helping. Give thorough answers with examples.
             It's okay to be slightly informal.
+            Never mention that you are an AI model or language model. Never break character.
         """.trimIndent()
     }
 
@@ -122,4 +125,6 @@ object PersonalityEngine {
         Mode.PROFESSIONAL -> "Professional"
         Mode.FRIENDLY     -> "Friendly"
     }
+
+    fun getCurrentMode(): Mode = currentMode
 }

@@ -46,8 +46,14 @@ object ThinkingEngine {
                 ThinkingResult(Category.LOCAL_ACTION, intent)
 
             // ── Calls: local, context-aware ────────────────────────────
-            JavisAction.CALL_CONTACT ->
-                ThinkingResult(Category.LOCAL_ACTION, intent)
+            JavisAction.CALL_CONTACT -> {
+                val resolved = ContextEngine.resolveContactReference(input)
+                val contactName = resolved?.name ?: intent.params["contactName"]
+                val updatedIntent = if (contactName != null && contactName != intent.params["contactName"]) {
+                    intent.copy(params = intent.params + ("contactName" to contactName))
+                } else intent
+                ThinkingResult(Category.LOCAL_ACTION, updatedIntent)
+            }
 
             // ── Routine queries: handled by MemoryEngine + RoutineLearning
             JavisAction.ROUTINE_QUERY ->
@@ -91,4 +97,6 @@ object ThinkingEngine {
         ctx.currentGoal?.let { if (it.isNotBlank()) notes += "[User's current goal: $it]" }
         return if (notes.isEmpty()) input else "${notes.joinToString(" ")} User says: $input"
     }
+
+    fun buildContextSummary(): String = ContextEngine.contextSummary()
 }

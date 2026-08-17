@@ -1,6 +1,7 @@
 package com.javis.launcher.ui.chat
 
 import android.os.Bundle
+import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import android.widget.EditText
@@ -21,8 +22,8 @@ import kotlinx.coroutines.launch
 
 class ChatActivity : AppCompatActivity() {
 
-    private val memory get() = JavisApplication.instance.memoryEngine!!
-    private val voice  get() = JavisApplication.instance.voiceEngine!!
+    private val memory get() = JavisApplication.instance.memoryEngine
+    private val voice  get() = JavisApplication.instance.voiceEngine
     private lateinit var ai: AIEngine
     private lateinit var execution: ExecutionEngine
     private lateinit var adapter: ChatAdapter
@@ -87,7 +88,10 @@ class ChatActivity : AppCompatActivity() {
 
         val mem = memory
         val v = voice
-        if (mem == null) return
+        if (mem == null || v == null) {
+            Log.d("ChatActivity", "Memory or voice engine not available")
+            return
+        }
 
         lifecycleScope.launch {
             mem.saveMessage("user", text)
@@ -118,7 +122,11 @@ class ChatActivity : AppCompatActivity() {
                 ThinkingEngine.Category.AI_CONVERSATION,
                 ThinkingEngine.Category.HYBRID -> {
                     val history = mem.getRecentHistory(50)
-                    ai.chat(thought.enrichedPrompt ?: text, history)
+                    try {
+                        ai.chat(thought.enrichedPrompt ?: text, history)
+                    } catch (e: Exception) {
+                        "I'm having trouble connecting to my brain right now, Sir."
+                    }
                 }
             }
 

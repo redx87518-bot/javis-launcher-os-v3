@@ -36,12 +36,13 @@ class MemoryEngine(private val context: Context) {
     }
 
     // ─── Conversation History (V4: up to 100 messages) ─────────────────────
-    fun saveMessage(role: String, content: String) {
-        scope.launch {
+    suspend fun saveMessage(role: String, content: String) = withContext(Dispatchers.IO) {
+        try {
             db.conversationDao().insert(ConversationMessage(role = role, content = content))
-            // Keep last 30 days
             val cutoff = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000L
             db.conversationDao().deleteOlderThan(cutoff)
+        } catch (e: Exception) {
+            // Log error but don't crash
         }
     }
 
@@ -49,6 +50,19 @@ class MemoryEngine(private val context: Context) {
         withContext(Dispatchers.IO) {
             db.conversationDao().getRecent(limit).reversed()
         }
+
+    suspend fun getConversationSummary(limit: Int = 20): String = withContext(Dispatchers.IO) {
+        val messages = db.conversationDao().getRecent(limit).reversed()
+        if (messages.isEmpty()) return@withContext "No conversation history yet."
+        messages.joinToString("\n") { msg ->
+            val speaker = if (msg.role == "user") "User" else "Assistant"
+            "$speaker: ${msg.content.take(80)}"
+        }
+    }
+
+    suspend fun hasKey(key: String): Boolean = withContext(Dispatchers.IO) {
+        db.memoryDao().getByKey(key) != null
+    }
 
     // ─── App Usage ─────────────────────────────────────────────────────────
     fun trackAppOpen(packageName: String, appName: String) {

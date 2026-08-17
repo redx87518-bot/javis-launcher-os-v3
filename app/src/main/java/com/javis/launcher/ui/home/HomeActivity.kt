@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.BatteryManager
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -35,8 +36,8 @@ import java.util.*
 
 class HomeActivity : AppCompatActivity() {
 
-    private val memory get() = JavisApplication.instance.memoryEngine!!
-    private val voice  get() = JavisApplication.instance.voiceEngine!!
+    private val memory get() = JavisApplication.instance.memoryEngine
+    private val voice  get() = JavisApplication.instance.voiceEngine
 
     private lateinit var tvGreeting:      TextView
     private lateinit var tvTime:          TextView
@@ -107,7 +108,11 @@ class HomeActivity : AppCompatActivity() {
             val unreadSms = getUnreadSmsCount()
             val greeting  = PersonalityEngine.welcomeMessage(name, battery, missed, unreadSms)
             tvStatusLine.text = greeting
-            if (v.isReady()) v.speak(greeting)
+            if (v.isReady()) {
+                v.speak(greeting)
+            } else {
+                Log.d("HomeActivity", "Voice not ready, skipping speech")
+            }
         }
     }
 

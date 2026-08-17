@@ -77,9 +77,27 @@ object ContextEngine {
             lowered.contains("help me") -> input
             lowered.contains("how do i") || lowered.contains("how to") -> input
             lowered.contains("explain") || lowered.contains("what is") -> input
+            lowered.contains("remind me") || lowered.contains("schedule") -> input
+            lowered.contains("plan my") || lowered.contains("organize") -> input
             else -> null
         }
         if (newGoal != null) context.currentGoal = newGoal
+    }
+
+    fun updateLastTopicFromAI(response: String) {
+        val words = response.split("\\s+".toRegex()).take(5).joinToString(" ")
+        if (words.isNotBlank() && words.length > 3) {
+            context.lastTopic = words
+        }
+    }
+
+    fun contextSummary(): String {
+        val parts = mutableListOf<String>()
+        context.lastContact?.let { parts += "Last contact: ${it.name}" }
+        context.lastApp?.let { parts += "Last app: ${it.appName}" }
+        context.lastTopic?.let { if (it.isNotBlank()) parts += "Last topic: $it" }
+        context.currentGoal?.let { if (it.isNotBlank()) parts += "Current goal: $it" }
+        return parts.joinToString(". ")
     }
 
     fun reset() {

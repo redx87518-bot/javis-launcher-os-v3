@@ -74,8 +74,7 @@ object IntentAnalyzer {
         }
 
         // ─── Settings ─────────────────────────────────────────────────────
-        if (text.contains("settings") || text.contains("configure") ||
-            text.contains("setup") || text.contains("preferences")) {
+        if (matchesOpenSettings(text)) {
             return IntentResult(action = JavisAction.OPEN_SETTINGS, confidence = 0.8f)
         }
 
@@ -108,17 +107,21 @@ object IntentAnalyzer {
             "what's on my routine", "what's my routine", "my routine",
             "what do i usually", "what are my habits", "what's next",
             "any reminders", "brief me", "briefing please",
-            "what's up", "what's new", "any updates"
+            "what's up", "what's new", "any updates",
+            "what should i do today", "any updates for me", "status",
+            "brief me on my day"
         )
         return patterns.any { text.contains(it) }
     }
 
     private fun matchesClearMissedCalls(text: String): Boolean {
-        return text.contains("i saw") || (text.contains("mark") && text.contains("read")) ||
+        return text.contains("i saw") || text.contains("i saw them") ||
+                (text.contains("mark") && text.contains("read")) ||
                 text.contains("clear missed") || (text.contains("dismiss") && text.contains("call")) ||
                 text.contains("acknowledge") || text == "i saw those" ||
                 text.contains("clear the calls") || text.contains("mark calls") ||
-                text.contains("clear calls") || text.contains("seen the calls")
+                text.contains("clear calls") || text.contains("seen the calls") ||
+                text.contains("mark as read")
     }
 
     private fun matchesOpenApp(text: String): Boolean {
@@ -138,6 +141,11 @@ object IntentAnalyzer {
         return text.contains("alarm") || text.contains("wake me") ||
                 text.contains("remind me at") || text.contains("set a timer") ||
                 (text.contains("set") && (text.contains(" am") || text.contains(" pm")))
+    }
+
+    private fun matchesOpenSettings(text: String): Boolean {
+        return text.contains("settings") || text.contains("configure") ||
+                text.contains("setup") || text.contains("preferences")
     }
 
     private fun matchesMemoryQuery(text: String): Boolean {

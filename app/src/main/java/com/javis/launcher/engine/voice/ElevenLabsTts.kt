@@ -55,6 +55,7 @@ class ElevenLabsTts(private val context: Context) {
             val response = http.newCall(request).execute()
             if (!response.isSuccessful) {
                 Log.e("ElevenLabsTts", "API error: ${response.code} ${response.message}")
+                Log.e("ElevenLabsTts", "API error body: ${response.body?.string()}")
                 onDone?.invoke()
                 return
             }
@@ -65,6 +66,7 @@ class ElevenLabsTts(private val context: Context) {
             }
 
             val tempFile = File(context.cacheDir, "eleven_${System.currentTimeMillis()}.mp3")
+            tempFile.deleteOnExit()
             FileOutputStream(tempFile).use { output ->
                 inputStream.copyTo(output)
             }
@@ -86,6 +88,9 @@ class ElevenLabsTts(private val context: Context) {
         } catch (e: Exception) {
             Log.e("ElevenLabsTts", "Speech failed", e)
             onDone?.invoke()
+        } finally {
+            mediaPlayer?.setOnCompletionListener(null)
+            mediaPlayer?.setOnErrorListener(null)
         }
     }
 

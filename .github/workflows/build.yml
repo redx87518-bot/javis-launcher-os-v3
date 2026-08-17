@@ -10,7 +10,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 60
+    env:
+      GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=\"-Xmx3g\""
 
     steps:
       - name: Checkout code
@@ -37,6 +39,12 @@ jobs:
 
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
+
+      - name: Warm up dependency cache
+        run: ./gradlew dependencies --configuration debugCompileClasspath
+
+      - name: Run lint (non-blocking)
+        run: ./gradlew lintDebug --stacktrace || true
 
       - name: Build Debug APK
         run: ./gradlew assembleDebug --stacktrace

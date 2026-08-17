@@ -19,6 +19,7 @@ class VoiceEngine(private val context: Context) : TextToSpeech.OnInitListener {
 
     var onSpeakingStart: (() -> Unit)? = null
     var onSpeakingEnd: (() -> Unit)? = null
+    var onSpeakingError: ((String) -> Unit)? = null
 
     init {
         initTTS()
@@ -64,15 +65,17 @@ class VoiceEngine(private val context: Context) : TextToSpeech.OnInitListener {
 
     private fun applyPersonalityVoice(t: TextToSpeech) {
         val voices = t.voices
-        val preferredVoice = voices?.firstOrNull { v ->
-            v.locale == Locale.US && v.name.lowercase().let { n ->
-                n.contains("male") || n.contains("en-us-x-sfg") ||
-                n.contains("en-us-x-tpd") || n.contains("en-us-x-tpc")
+        if (!voices.isNullOrEmpty()) {
+            val preferredVoice = voices.firstOrNull { v ->
+                v.locale == Locale.US && v.name.lowercase().let { n ->
+                    n.contains("male") || n.contains("en-us-x-sfg") ||
+                        n.contains("en-us-x-tpd") || n.contains("en-us-x-tpc")
+                }
+            } ?: voices.firstOrNull { v ->
+                v.locale == Locale.US && !v.name.lowercase().contains("female")
             }
-        } ?: voices?.firstOrNull { v ->
-            v.locale == Locale.US && !v.name.lowercase().contains("female")
+            preferredVoice?.let { t.voice = it }
         }
-        preferredVoice?.let { t.voice = it }
 
         when (PersonalityEngine.currentMode) {
             PersonalityEngine.Mode.JARVIS -> {
@@ -117,6 +120,7 @@ class VoiceEngine(private val context: Context) : TextToSpeech.OnInitListener {
             override fun onError(id: String?) {
                 mainThread.post {
                     onSpeakingEnd?.invoke()
+                    onSpeakingError?.invoke("TTS utterance error")
                     onDone?.invoke()
                 }
             }

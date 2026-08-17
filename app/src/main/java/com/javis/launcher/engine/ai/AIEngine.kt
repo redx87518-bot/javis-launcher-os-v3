@@ -97,7 +97,6 @@ CORE RULES:
         val activeProvider = getActiveProvider()
             ?: return@withContext "I don't have an AI provider configured yet, Sir. Please add an API key in Settings."
 
-        // Build provider order: active first, then fallbacks
         val allProviders = AIProvider.values().toMutableList()
         allProviders.remove(activeProvider)
         val providerOrder = listOf(activeProvider) + allProviders
@@ -108,7 +107,6 @@ CORE RULES:
             append(PersonalityEngine.systemPromptForMode())
         }
 
-        // V4: keep last 50 messages for deep context
         val messages = JSONArray()
         messages.put(JSONObject().put("role", "system").put("content", fullSystemPrompt))
         history.takeLast(50).forEach { msg ->
@@ -116,11 +114,14 @@ CORE RULES:
         }
         messages.put(JSONObject().put("role", "user").put("content", userMessage))
 
-        // Try each provider in order
-        for (provider in providerOrder) {
-            val config = getProviderConfig(provider) ?: continue
-            val result = attemptChat(messages, config)
-            if (result != null) return@withContext PersonalityEngine.formatResponse(result)
+        try {
+            for (provider in providerOrder) {
+                val config = getProviderConfig(provider) ?: continue
+                val result = attemptChatWithRetry(messages, config)
+                if (result != null) return@withContext PersonalityEngine.formatResponse(result)
+            }
+        } catch (e: Exception) {
+            Log.e("AIEngine", "Chat failed", e)
         }
 
         return@withContext "I'm having trouble reaching any AI service right now. Please check your internet connection and API keys in Settings."
@@ -131,8 +132,8 @@ CORE RULES:
             val body = JSONObject()
                 .put("model", config.model)
                 .put("messages", messages)
-                .put("max_tokens", 1024)       // V4: up from 256 — allow full detailed responses
-                .put("temperature", 0.75)      // slight increase for more natural language
+                .put("max_tokens", 1024)
+                .put("temperature", 0.75)
 
             val (url, authHeader) = endpointFor(config.provider, config)
             val req = Request.Builder()
@@ -140,7 +141,6 @@ CORE RULES:
                 .addHeader("Authorization", authHeader)
                 .addHeader("Content-Type", "application/json")
                 .apply {
-                    // OpenRouter requires HTTP-Referer
                     if (config.provider == AIProvider.OPENROUTER) {
                         addHeader("HTTP-Referer", "https://github.com/redx87518-bot/javis-launcher-os-v3")
                         addHeader("X-Title", "JAVIS Launcher")
@@ -149,8 +149,15 @@ CORE RULES:
                 .post(body.toString().toRequestBody("application/json".toMediaType()))
                 .build()
 
+            val start = System.currentTimeMillis()
             val resp = http.newCall(req).execute()
-            if (!resp.isSuccessful) return null
+            val latency = System.currentTimeMillis() - start
+            Log.d("AIEngine", "${config.provider} responded in ${latency}ms")
+
+            if (!resp.isSuccessful) {
+                Log.w("AIEngine", "${config.provider} HTTP ${resp.code}: ${resp.message}")
+                return null
+            }
 
             val json = JSONObject(resp.body?.string() ?: "{}")
             json.getJSONArray("choices")
@@ -160,8 +167,27 @@ CORE RULES:
                 .trim()
                 .takeIf { it.isNotBlank() }
         } catch (e: Exception) {
-            null  // fail silently so next provider can be tried
+            Log.e("AIEngine", "Provider ${config.provider} failed", e)
+            null
         }
+    }
+
+    private suspend fun attemptChatWithRetry(
+        messages: JSONArray,
+        config: ProviderConfig,
+        maxRetries: Int = 2
+    ): String? {
+        var lastException: Exception? = null
+        for (attempt in 0..maxRetries) {
+            if (attempt > 0) {
+                val delayMs = (1000L * attempt).coerceAtMost(5000L)
+                kotlinx.coroutines.delay(delayMs)
+                Log.d("AIEngine", "Retry $attempt for ${config.provider} after ${delayMs}ms")
+            }
+            val result = attemptChat(messages, config)
+            if (result != null) return result
+        }
+        return null
     }
 
     private fun endpointFor(provider: AIProvider, config: ProviderConfig): Pair<String, String> {

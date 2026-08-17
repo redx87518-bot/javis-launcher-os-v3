@@ -2,6 +2,7 @@ package com.javis.launcher.engine.memory
 
 import android.content.Context
 import androidx.room.*
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.javis.launcher.models.*
 
 @Dao
@@ -76,8 +77,8 @@ interface CommandLogDao {
 
 @Database(
     entities = [Memory::class, ConversationMessage::class, AppUsage::class, ContactUsage::class, CommandLog::class],
-    version = 2,          // bumped for V4 CommandLog table
-    exportSchema = false
+    version = 3,
+    exportSchema = true
 )
 abstract class MemoryDatabase : RoomDatabase() {
     abstract fun memoryDao(): MemoryDao
@@ -89,6 +90,26 @@ abstract class MemoryDatabase : RoomDatabase() {
     companion object {
         @Volatile private var INSTANCE: MemoryDatabase? = null
 
+        private val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS command_log (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        action TEXT NOT NULL,
+                        detail TEXT NOT NULL,
+                        result TEXT NOT NULL,
+                        timestamp INTEGER NOT NULL
+                    )
+                """)
+            }
+        }
+
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // No schema changes between v2 and v3
+            }
+        }
+
         fun getInstance(context: Context): MemoryDatabase {
             return INSTANCE ?: synchronized(this) {
                 Room.databaseBuilder(
@@ -96,7 +117,7 @@ abstract class MemoryDatabase : RoomDatabase() {
                     MemoryDatabase::class.java,
                     "javis_memory.db"
                 )
-                .fallbackToDestructiveMigration()  // safe — user re-enters API key, memories rebuild
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                 .build()
                 .also { INSTANCE = it }
             }

@@ -39,21 +39,26 @@ object RoutineLearningEngine {
         timeBasedSuggestion(hour)?.let { suggestions.add(it) }
 
         // App suggestions (based on overall frequency)
+        val seenActions = suggestions.map { it.actionHint }.toMutableSet()
         topApps.take(2).forEach { app ->
-            suggestions.add(Suggestion(
-                text       = "Open ${app.appName}",
-                actionHint = app.appName,
-                priority   = app.useCount
-            ))
+            if (seenActions.add(app.appName)) {
+                suggestions.add(Suggestion(
+                    text       = "Open ${app.appName}",
+                    actionHint = app.appName,
+                    priority   = app.useCount
+                ))
+            }
         }
 
         // Contact suggestions
         topContacts.take(2).forEach { c ->
-            suggestions.add(Suggestion(
-                text       = "Call ${c.name}",
-                actionHint = "Call ${c.name}",
-                priority   = c.callCount
-            ))
+            if (seenActions.add("Call ${c.name}")) {
+                suggestions.add(Suggestion(
+                    text       = "Call ${c.name}",
+                    actionHint = "Call ${c.name}",
+                    priority   = c.callCount
+                ))
+            }
         }
 
         // Morning routine
@@ -88,6 +93,36 @@ object RoutineLearningEngine {
             sb.append("You frequently call $contactName — would you like me to dial them? ")
         }
         sb.append("How can I help you today?")
+        return sb.toString()
+    }
+
+    suspend fun getAfternoonBriefing(memory: MemoryEngine): String {
+        val topApps = memory.getTopApps(3)
+        val name = memory.getUserName()
+        val address = if (name != null) ", $name" else ", Sir"
+
+        val sb = StringBuilder("Good afternoon$address. ")
+
+        if (topApps.isNotEmpty()) {
+            val appNames = topApps.map { it.appName }.joinToString(", ")
+            sb.append("This afternoon you typically use $appNames. ")
+        }
+        sb.append("Need anything?")
+        return sb.toString()
+    }
+
+    suspend fun getEveningBriefing(memory: MemoryEngine): String {
+        val topContacts = memory.getTopContacts(2)
+        val name = memory.getUserName()
+        val address = if (name != null) ", $name" else ", Sir"
+
+        val sb = StringBuilder("Good evening$address. ")
+
+        if (topContacts.isNotEmpty()) {
+            val contactName = topContacts.first().name
+            sb.append("You often call $contactName in the evening. ")
+        }
+        sb.append("Anything else before the day ends?")
         return sb.toString()
     }
 

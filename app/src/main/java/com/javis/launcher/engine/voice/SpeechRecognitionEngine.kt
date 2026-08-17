@@ -26,6 +26,8 @@ class SpeechRecognitionEngine(private val context: Context) {
     private var callback: RecognitionCallback? = null
     private var isListening = false
     private var shouldContinue = false
+    private var restartCount = 0
+    private var lastRestartTime = 0L
 
     fun setCallback(cb: RecognitionCallback) {
         callback = cb
@@ -62,6 +64,7 @@ class SpeechRecognitionEngine(private val context: Context) {
 
             override fun onResults(results: Bundle?) {
                 isListening = false
+                restartCount = 0
                 val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                 val text = matches?.firstOrNull()
                 if (!text.isNullOrBlank()) {
@@ -83,14 +86,20 @@ class SpeechRecognitionEngine(private val context: Context) {
                     SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS -> "Microphone permission required"
                     else -> "Recognition error ($error)"
                 }
-                // For non-fatal errors, restart if continuous mode
                 if (error == SpeechRecognizer.ERROR_NO_MATCH ||
                     error == SpeechRecognizer.ERROR_SPEECH_TIMEOUT) {
                     callback?.onSilence()
-                    if (shouldContinue) {
+                    if (shouldContinue &&
+                        restartCount < 5 &&
+                        System.currentTimeMillis() - lastRestartTime > 2000
+                    ) {
+                        restartCount++
+                        lastRestartTime = System.currentTimeMillis()
                         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
                             if (shouldContinue) beginListening()
                         }, 500)
+                    } else if (shouldContinue) {
+                        callback?.onError(error, "Too many restarts")
                     }
                 } else {
                     callback?.onError(error, msg)
@@ -110,9 +119,9 @@ class SpeechRecognitionEngine(private val context: Context) {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
             putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+            putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 500L)
-            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1500L)
+            putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 2000L)
             putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 1000L)
         }
         try {
@@ -124,6 +133,17 @@ class SpeechRecognitionEngine(private val context: Context) {
 
     fun isAvailable(): Boolean = SpeechRecognizer.isRecognitionAvailable(context)
     fun isListening() = isListening
+
+    fun pauseListening() {
+        recognizer?.stopListening()
+        isListening = false
+    }
+
+    fun resumeListening() {
+        if (shouldContinue && !isListening) {
+            beginListening()
+        }
+    }
 
     fun destroy() {
         shouldContinue = false

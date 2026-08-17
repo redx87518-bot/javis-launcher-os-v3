@@ -27,8 +27,8 @@ class VoiceActivity : AppCompatActivity() {
     private lateinit var recognition: SpeechRecognitionEngine
     private lateinit var execution: ExecutionEngine
     private lateinit var ai: AIEngine
-    private val voice  get() = JavisApplication.instance.voiceEngine!!
-    private val memory get() = JavisApplication.instance.memoryEngine!!
+    private val voice  get() = JavisApplication.instance.voiceEngine
+    private val memory get() = JavisApplication.instance.memoryEngine
 
     private lateinit var tvStatus:     TextView
     private lateinit var tvTranscript: TextView
@@ -159,8 +159,12 @@ class VoiceActivity : AppCompatActivity() {
 
     private suspend fun sendToAI(prompt: String) {
         val mem = memory ?: return
-        val history  = mem.getRecentHistory(50)
-        val response = ai.chat(prompt, history)
+        val history = mem.getRecentHistory(50)
+        val response = try {
+            ai.chat(prompt, history)
+        } catch (e: Exception) {
+            "I'm having trouble connecting to my brain right now, Sir."
+        }
         mem.saveMessage("assistant", response)
         mem.logCommand("AI Chat", prompt.take(50), "Responded")
         respond(response)
@@ -170,8 +174,12 @@ class VoiceActivity : AppCompatActivity() {
         val v = voice
         runOnUiThread {
             tvResponse.text = text
+            if (v == null) {
+                setState(VoiceState.COMPLETED)
+                return@runOnUiThread
+            }
             setState(VoiceState.SPEAKING)
-            v?.speak(text) {
+            v.speak(text) {
                 runOnUiThread {
                     setState(VoiceState.COMPLETED)
                     handler.postDelayed({
@@ -226,6 +234,6 @@ class VoiceActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         recognition.destroy()
-        voice.stopSpeaking()
+        voice?.stopSpeaking()
     }
 }

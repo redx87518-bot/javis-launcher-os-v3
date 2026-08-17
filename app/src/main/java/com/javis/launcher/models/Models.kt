@@ -66,6 +66,12 @@ data class InstalledApp(
     val icon: android.graphics.drawable.Drawable? = null
 )
 
+// ─── Chat Message (UI layer) ────────────────────────────────────────────────
+data class ChatMessage(
+    val text: String,
+    val isUser: Boolean
+)
+
 // ─── AI Provider ───────────────────────────────────────────────────────────
 enum class AIProvider { OPENROUTER, GROQ, DEEPSEEK }
 
@@ -74,7 +80,8 @@ data class ProviderConfig(
     val apiKey: String,
     val model: String,
     var isActive: Boolean = false,
-    var latencyMs: Long = -1
+    var latencyMs: Long = -1,
+    var lastUsed: Long = 0
 )
 
 // ─── Intent Result ─────────────────────────────────────────────────────────

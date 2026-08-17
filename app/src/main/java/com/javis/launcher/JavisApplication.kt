@@ -23,9 +23,17 @@ class JavisApplication : Application() {
         instance = this
         try {
             memoryEngine = MemoryEngine(this)
+        } catch (e: Exception) {
+            Log.e("JavisApplication", "MemoryEngine init failed", e)
+        }
+        try {
             voiceEngine = VoiceEngine(this)
         } catch (e: Exception) {
-            Log.e("JavisApplication", "Failed to initialize engines", e)
+            Log.e("JavisApplication", "VoiceEngine init failed", e)
         }
+    }
+
+    fun isInitialized(): Boolean {
+        return memoryEngine != null && voiceEngine != null
     }
 }
