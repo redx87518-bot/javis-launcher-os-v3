@@ -452,7 +452,7 @@ class SettingsActivity : AppCompatActivity() {
 
             androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Select apps to show on home screen")
-                .setMultiChoiceItems(appNames, selectedIndices.toBooleanArray()) { _, index, isChecked ->
+                .setMultiChoiceItems(appNames, BooleanArray(appNames.size) { index -> selectedIndices.contains(index) }) { _, index, isChecked ->
                     val pkg = allApps[index].second
                     val current = prefs.getStringSet("selected_packages", mutableSetOf()) ?: mutableSetOf()
                     if (isChecked) {

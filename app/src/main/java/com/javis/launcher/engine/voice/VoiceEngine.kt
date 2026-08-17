@@ -6,6 +6,7 @@ import android.os.Handler
 import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
+import android.util.Log
 import com.javis.launcher.engine.PersonalityEngine
 import java.util.Locale
 import java.util.UUID
