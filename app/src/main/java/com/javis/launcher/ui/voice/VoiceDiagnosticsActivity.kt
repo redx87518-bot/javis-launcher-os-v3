@@ -27,10 +27,10 @@ class VoiceDiagnosticsActivity : AppCompatActivity() {
         val btnTest = findViewById<Button>(R.id.btn_test_voice)
 
         val prefs = getSharedPreferences("javis_voice_prefs", MODE_PRIVATE)
-        val engineName = if (prefs.getString("tts_engine", "system") == "edge") "Edge TTS" else "Android TTS"
+        val engineName = if (prefs.getString("tts_engine", "system") == "edge") "Online TTS (Edge TTS)" else "Offline TTS (Android TTS)"
         tvEngine.text = "Engine: $engineName"
         tvStatus.text = if (voice?.isReady() == true) "Status: Ready" else "Status: Initializing..."
-        tvOnline.text = "Online TTS: Edge TTS"
+        tvOnline.text = "Online TTS: Edge TTS (en-GB-RyanNeural)"
         tvOffline.text = "Offline TTS: Android TTS"
 
         val recognizerAvailable = SpeechRecognizer.isRecognitionAvailable(this)

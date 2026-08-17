@@ -73,6 +73,13 @@ class VoiceEngine(private val context: Context) : TextToSpeech.OnInitListener {
                 voices.find { it.name == savedVoice }
             } else {
                 val preferredVoice = voices.firstOrNull { v ->
+                    v.locale == Locale.UK && v.name.lowercase().let { n ->
+                        n.contains("male") || n.contains("british") ||
+                            n.contains("en-gb") || n.contains("uk")
+                    }
+                } ?: voices.firstOrNull { v ->
+                    v.locale == Locale.UK
+                } ?: voices.firstOrNull { v ->
                     v.locale == Locale.US && v.name.lowercase().let { n ->
                         n.contains("male") || n.contains("en-us-x-sfg") ||
                             n.contains("en-us-x-tpd") || n.contains("en-us-x-tpc")
@@ -105,11 +112,50 @@ class VoiceEngine(private val context: Context) : TextToSpeech.OnInitListener {
         val engine = prefs.getString("tts_engine", "system") ?: "system"
 
         if (engine == "edge") {
-            val voiceId = prefs.getString("edge_voice_id", "en-US-AriaNeural") ?: "en-US-AriaNeural"
-            edgeTts?.speak(text, voiceId, onDone)
+            val voiceId = prefs.getString("edge_voice_id", "en-GB-RyanNeural") ?: "en-GB-RyanNeural"
+            if (edgeTts != null) {
+                edgeTts?.speak(text, voiceId) { error ->
+                    if (error != null) {
+                        Log.w("VoiceEngine", "Edge TTS failed, falling back to system TTS", error)
+                        speakWithSystemTts(text, onDone)
+                    } else {
+                        onDone?.invoke()
+                    }
+                }
+            } else {
+                speakWithSystemTts(text, onDone)
+            }
             return
         }
 
+        if (!ttsReady) {
+            mainThread.post { onDone?.invoke() }
+            return
+        }
+        val utteranceId = UUID.randomUUID().toString()
+        tts?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
+            override fun onStart(id: String?) {
+                mainThread.post { onSpeakingStart?.invoke() }
+            }
+            override fun onDone(id: String?) {
+                mainThread.post {
+                    onSpeakingEnd?.invoke()
+                    onDone?.invoke()
+                }
+            }
+            override fun onError(id: String?) {
+                mainThread.post {
+                    onSpeakingEnd?.invoke()
+                    onSpeakingError?.invoke("TTS utterance error")
+                    onDone?.invoke()
+                }
+            }
+        })
+        val params = Bundle()
+        tts?.speak(text, TextToSpeech.QUEUE_FLUSH, params, utteranceId)
+    }
+
+    private fun speakWithSystemTts(text: String, onDone: (() -> Unit)?) {
         if (!ttsReady) {
             mainThread.post { onDone?.invoke() }
             return

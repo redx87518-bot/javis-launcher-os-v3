@@ -4,11 +4,14 @@ import android.Manifest
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.BatteryManager
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -30,10 +33,12 @@ import com.javis.launcher.ui.contacts.ContactsActivity
 import com.javis.launcher.ui.memory.MemoryActivity
 import com.javis.launcher.ui.settings.SettingsActivity
 import com.javis.launcher.ui.voice.VoiceActivity
+import com.javis.launcher.util.ThemeManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -48,6 +53,7 @@ class HomeActivity : AppCompatActivity() {
     private lateinit var tvStatusLine:    TextView
     private lateinit var rvFavoriteApps:  RecyclerView
     private lateinit var tvProviderStatus: TextView
+    private lateinit var ivWallpaper:     ImageView
 
     private val unlockReceiver  = UnlockReceiver()
     private var receiverRegistered = false
@@ -63,10 +69,12 @@ class HomeActivity : AppCompatActivity() {
         tvStatusLine     = findViewById(R.id.tv_status_line)
         rvFavoriteApps   = findViewById(R.id.rv_favorite_apps)
         tvProviderStatus = findViewById(R.id.tv_provider_status)
+        ivWallpaper      = findViewById(R.id.iv_wallpaper)
 
         setupClock()
         setupNavButtons()
         observeWhatsAppMessages()
+        loadWallpaper()
     }
 
     private fun observeWhatsAppMessages() {
@@ -112,6 +120,19 @@ class HomeActivity : AppCompatActivity() {
         loadFavoriteApps()
         updateProviderBadge()
         maybeDeliverUnlockGreeting()
+        loadWallpaper()
+    }
+
+    private fun loadWallpaper() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val wallpaperFile = File(filesDir, "javis_wallpaper.jpg")
+            if (wallpaperFile.exists()) {
+                val bitmap = BitmapFactory.decodeFile(wallpaperFile.absolutePath)
+                withContext(Dispatchers.Main) {
+                    ivWallpaper.setImageBitmap(bitmap)
+                }
+            }
+        }
     }
 
     // ─── Unlock greeting ──────────────────────────────────────────────────
@@ -217,32 +238,41 @@ class HomeActivity : AppCompatActivity() {
     private fun loadFavoriteApps() {
         val mem = memory ?: return
         lifecycleScope.launch {
-            val topApps = mem.getTopApps(8)
             val pm = packageManager
+            val prefs = getSharedPreferences("javis_apps", MODE_PRIVATE)
+            val selectedApps = prefs.getStringSet("selected_packages", emptySet()) ?: emptySet()
 
-            val appItems: List<Pair<String, String>> = if (topApps.isNotEmpty()) {
-                topApps.mapNotNull { usage ->
-                    try {
-                        val info = pm.getApplicationInfo(usage.packageName, 0)
-                        Pair(pm.getApplicationLabel(info).toString(), usage.packageName)
-                    } catch (e: Exception) { null }
-                }
-            } else {
-                // Fallback: common default apps
-                listOf(
-                    "com.whatsapp", "com.android.chrome",
-                    "com.google.android.youtube", "com.instagram.android"
-                ).mapNotNull { pkg ->
+            val appItems: List<Pair<String, String>> = if (selectedApps.isNotEmpty()) {
+                selectedApps.mapNotNull { pkg ->
                     try {
                         val info = pm.getApplicationInfo(pkg, 0)
                         Pair(pm.getApplicationLabel(info).toString(), pkg)
                     } catch (e: Exception) { null }
                 }
+            } else {
+                val topApps = mem.getTopApps(8)
+                if (topApps.isNotEmpty()) {
+                    topApps.mapNotNull { usage ->
+                        try {
+                            val info = pm.getApplicationInfo(usage.packageName, 0)
+                            Pair(pm.getApplicationLabel(info).toString(), usage.packageName)
+                        } catch (e: Exception) { null }
+                    }
+                } else {
+                    listOf(
+                        "com.whatsapp", "com.android.chrome",
+                        "com.google.android.youtube", "com.instagram.android"
+                    ).mapNotNull { pkg ->
+                        try {
+                            val info = pm.getApplicationInfo(pkg, 0)
+                            Pair(pm.getApplicationLabel(info).toString(), pkg)
+                        } catch (e: Exception) { null }
+                    }
+                }
             }
 
             rvFavoriteApps.layoutManager = GridLayoutManager(this@HomeActivity, 4)
             rvFavoriteApps.adapter = FavoriteAppsAdapter(appItems) { pkg ->
-                // Bug fix: wrap in try-catch — app may be uninstalled between listing and tap
                 try {
                     val launchIntent = pm.getLaunchIntentForPackage(pkg)
                     if (launchIntent != null) {

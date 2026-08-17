@@ -6,6 +6,17 @@
     android:layout_height="match_parent"
     android:background="@color/javis_bg">
 
+    <ImageView
+        android:id="@+id/iv_wallpaper"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
     <!-- Top greeting area -->
     <LinearLayout
         android:id="@+id/layout_top"
@@ -14,6 +25,7 @@
         android:orientation="vertical"
         android:paddingHorizontal="24dp"
         android:paddingTop="48dp"
+        android:background="#E6F0F0FF"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
@@ -49,7 +61,10 @@
             android:layout_marginTop="8dp"
             android:text="All systems operational."
             android:textColor="@color/javis_green"
-            android:textSize="12sp" />
+            android:textSize="12sp"
+            android:background="#E6F0F0FF"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="4dp"/>
     </LinearLayout>
 
     <!-- AI Orb (center) -->
@@ -75,7 +90,8 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toTopOf="@id/rv_favorite_apps"
-        android:layout_marginBottom="4dp">
+        android:layout_marginBottom="4dp"
+        android:background="@android:color/transparent">
 
         <TextView
             android:id="@+id/tv_provider_status"
@@ -111,7 +127,8 @@
         android:paddingHorizontal="16dp"
         app:layout_constraintBottom_toTopOf="@id/layout_nav"
         app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginBottom="8dp"/>
+        android:layout_marginBottom="8dp"
+        android:background="@android:color/transparent"/>
 
     <!-- Bottom Navigation -->
     <LinearLayout
@@ -120,7 +137,7 @@
         android:layout_height="72dp"
         android:orientation="horizontal"
         android:gravity="center"
-        android:background="@color/javis_surface"
+        android:background="#DDFFFFFF"
         android:paddingHorizontal="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent">

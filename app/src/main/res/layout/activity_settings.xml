@@ -249,6 +249,94 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
+            <!-- ── APPEARANCE ─────────────────────────────────────────────── -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="APPEARANCE"
+                android:textColor="@color/javis_red"
+                android:textSize="11sp"
+                android:letterSpacing="0.2"
+                android:layout_marginBottom="8dp"/>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:cardBackgroundColor="@color/javis_card"
+                app:cardCornerRadius="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Display mode"
+                        android:textColor="@color/javis_text_secondary"
+                        android:textSize="12sp"
+                        android:layout_marginBottom="8dp"/>
+
+                    <RadioGroup
+                        android:id="@+id/rg_mode"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+
+                        <RadioButton
+                            android:id="@+id/rb_mode_dark"
+                            android:layout_width="0dp"
+                            android:layout_height="48dp"
+                            android:layout_weight="1"
+                            android:text="Dark"
+                            android:textColor="@color/javis_text_primary"
+                            android:textSize="13sp"
+                            android:buttonTint="@color/javis_red"
+                            android:paddingStart="8dp"
+                            android:checked="true"/>
+
+                        <RadioButton
+                            android:id="@+id/rb_mode_light"
+                            android:layout_width="0dp"
+                            android:layout_height="48dp"
+                            android:layout_weight="1"
+                            android:text="Light"
+                            android:textColor="@color/javis_text_primary"
+                            android:textSize="13sp"
+                            android:buttonTint="@color/javis_red"
+                            android:paddingStart="8dp"/>
+                    </RadioGroup>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Wallpaper"
+                        android:textColor="@color/javis_text_secondary"
+                        android:textSize="12sp"
+                        android:layout_marginTop="16dp"
+                        android:layout_marginBottom="8dp"/>
+
+                    <ImageView
+                        android:id="@+id/iv_wallpaper"
+                        android:layout_width="match_parent"
+                        android:layout_height="120dp"
+                        android:scaleType="centerCrop"
+                        android:background="@color/javis_surface"
+                        android:layout_marginBottom="8dp"/>
+
+                    <Button
+                        android:id="@+id/btn_wallpaper"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:text="Choose Wallpaper"
+                        android:backgroundTint="@color/javis_surface"
+                        android:textColor="@color/javis_text_primary"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
             <!-- ── VOICE ENGINE (V5) ───────────────────────────────────────── -->
             <TextView
                 android:layout_width="wrap_content"
@@ -291,7 +379,7 @@
                             android:id="@+id/rb_tts_system"
                             android:layout_width="match_parent"
                             android:layout_height="48dp"
-                            android:text="System TTS (Android / Kokoro)"
+                            android:text="Offline TTS (Sherpa-ONNX Kokoro-82M, 12 MB)"
                             android:textColor="@color/javis_text_primary"
                             android:textSize="13sp"
                             android:buttonTint="@color/javis_red"
@@ -302,7 +390,7 @@
                             android:id="@+id/rb_tts_edge"
                             android:layout_width="match_parent"
                             android:layout_height="48dp"
-                            android:text="Edge TTS (Free, 400+ voices, No API key)"
+                            android:text="Online TTS (Edge TTS en-GB-RyanNeural, 0 MB, ChatGPT natural)"
                             android:textColor="@color/javis_text_primary"
                             android:textSize="13sp"
                             android:buttonTint="@color/javis_red"
@@ -578,6 +666,56 @@
                         android:layout_width="match_parent"
                         android:layout_height="44dp"
                         android:text="Open Notification Settings"
+                        android:backgroundTint="@color/javis_surface"
+                        android:textColor="@color/javis_text_primary"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- ── APP SELECTION ─────────────────────────────────────────── -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="HOME APPS"
+                android:textColor="@color/javis_red"
+                android:textSize="11sp"
+                android:letterSpacing="0.2"
+                android:layout_marginBottom="8dp"/>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:cardBackgroundColor="@color/javis_card"
+                app:cardCornerRadius="12dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Choose which apps appear on your home screen."
+                        android:textColor="@color/javis_text_secondary"
+                        android:textSize="12sp"
+                        android:layout_marginBottom="8dp"/>
+
+                    <TextView
+                        android:id="@+id/tv_selected_apps"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="No apps selected. Showing most used apps."
+                        android:textColor="@color/javis_text_secondary"
+                        android:textSize="12sp"
+                        android:layout_marginBottom="8dp"/>
+
+                    <Button
+                        android:id="@+id/btn_select_apps"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:text="Select Apps"
                         android:backgroundTint="@color/javis_surface"
                         android:textColor="@color/javis_text_primary"/>
                 </LinearLayout>

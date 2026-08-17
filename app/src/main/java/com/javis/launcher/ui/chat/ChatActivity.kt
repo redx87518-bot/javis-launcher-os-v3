@@ -132,7 +132,11 @@ class ChatActivity : AppCompatActivity() {
 
             mem.saveMessage("assistant", response)
             addMessage(response, isUser = false)
-            v?.speak(response)
+            if (v.isReady()) {
+                v.speak(response)
+            } else {
+                Log.d("ChatActivity", "Voice not ready, skipping speech")
+            }
         }
     }
 

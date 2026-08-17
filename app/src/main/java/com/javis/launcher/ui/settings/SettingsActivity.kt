@@ -1,7 +1,11 @@
 package com.javis.launcher.ui.settings
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.os.Bundle
+import android.provider.MediaStore
 import android.view.View
 import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
@@ -20,6 +24,8 @@ import com.javis.launcher.util.ThemeManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.io.FileOutputStream
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -37,11 +43,13 @@ class SettingsActivity : AppCompatActivity() {
 
         setupProviderSection()
         setupThemeSection()
+        setupAppearanceSection()
         setupPersonalitySection()
         setupVoiceSection()
         setupMemorySection()
         setupRoutineSection()
         setupWhatsAppSection()
+        setupAppSelectionSection()
         setupDiagnosticsSection()
     }
 
@@ -174,6 +182,71 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
+    // ─── Appearance (Dark/Light + Wallpaper) ─────────────────────────────
+    private fun setupAppearanceSection() {
+        val rgMode = findViewById<RadioGroup>(R.id.rg_mode)
+        val btnWallpaper = findViewById<Button>(R.id.btn_wallpaper)
+        val ivWallpaper = findViewById<ImageView>(R.id.iv_wallpaper)
+
+        val currentMode = ThemeManager.getMode(this)
+        val modeCheckedId = if (currentMode == ThemeManager.MODE_LIGHT) R.id.rb_mode_light else R.id.rb_mode_dark
+        rgMode.check(modeCheckedId)
+
+        rgMode.setOnCheckedChangeListener { _, checkedId ->
+            val mode = if (checkedId == R.id.rb_mode_light) ThemeManager.MODE_LIGHT else ThemeManager.MODE_DARK
+            ThemeManager.setMode(this, mode)
+            Toast.makeText(this, "Display mode updated. Restart to apply.", Toast.LENGTH_SHORT).show()
+            recreate()
+        }
+
+        val wallpaperFile = File(filesDir, "javis_wallpaper.jpg")
+        if (wallpaperFile.exists()) {
+            val bitmap = BitmapFactory.decodeFile(wallpaperFile.absolutePath)
+            ivWallpaper.setImageBitmap(bitmap)
+        }
+
+        btnWallpaper.setOnClickListener {
+            val intent = Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+            intent.type = "image/*"
+            startActivityForResult(intent, REQUEST_WALLPAPER)
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_WALLPAPER && resultCode == RESULT_OK) {
+            data?.data?.let { uri ->
+                val ivWallpaper = findViewById<ImageView>(R.id.iv_wallpaper)
+                lifecycleScope.launch(Dispatchers.IO) {
+                    try {
+                        val inputStream = contentResolver.openInputStream(uri)
+                        val bitmap = BitmapFactory.decodeStream(inputStream)
+                        inputStream?.close()
+
+                        val wallpaperFile = File(filesDir, "javis_wallpaper.jpg")
+                        FileOutputStream(wallpaperFile).use { out ->
+                            bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)
+                        }
+
+                        withContext(Dispatchers.Main) {
+                            ivWallpaper.setImageBitmap(bitmap)
+                            Toast.makeText(this@SettingsActivity, "Wallpaper updated!", Toast.LENGTH_SHORT).show()
+                        }
+                    } catch (e: Exception) {
+                        Log.e("SettingsActivity", "Wallpaper save failed", e)
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@SettingsActivity, "Failed to set wallpaper", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    companion object {
+        const val REQUEST_WALLPAPER = 1001
+    }
+
     // ─── Personality Mode (V4) ────────────────────────────────────────────
     private fun setupPersonalitySection() {
         val rgPersonality = findViewById<RadioGroup>(R.id.rg_personality)
@@ -209,7 +282,7 @@ class SettingsActivity : AppCompatActivity() {
 
         val prefs = getSharedPreferences("javis_voice_prefs", MODE_PRIVATE)
         val savedEngine = prefs.getString("tts_engine", "system") ?: "system"
-        val savedVoice = prefs.getString("edge_voice_id", "en-US-AriaNeural") ?: "en-US-AriaNeural"
+        val savedVoice = prefs.getString("edge_voice_id", "en-GB-RyanNeural") ?: "en-GB-RyanNeural"
 
         val voiceAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item,
             EdgeTts.VOICES.map { "${it.first} — ${it.second}" })
@@ -224,8 +297,8 @@ class SettingsActivity : AppCompatActivity() {
         }
         rgTts.check(checkedId)
         tvVoiceStatus.text = when (savedEngine) {
-            "edge" -> "Edge TTS Active (${EdgeTts.getVoiceDisplayName(savedVoice)})"
-            else -> "System TTS Active"
+            "edge" -> "Online TTS (${EdgeTts.getVoiceDisplayName(savedVoice)})"
+            else -> "Offline TTS (Android TTS)"
         }
 
         spinnerVoice.isEnabled = savedEngine == "edge"
@@ -238,10 +311,10 @@ class SettingsActivity : AppCompatActivity() {
             prefs.edit().putString("tts_engine", engine).apply()
             spinnerVoice.isEnabled = engine == "edge"
 
-            val currentVoice = prefs.getString("edge_voice_id", "en-US-AriaNeural") ?: "en-US-AriaNeural"
+            val currentVoice = prefs.getString("edge_voice_id", "en-GB-RyanNeural") ?: "en-GB-RyanNeural"
             tvVoiceStatus.text = when (engine) {
-                "edge" -> "Edge TTS Active (${EdgeTts.getVoiceDisplayName(currentVoice)})"
-                else -> "System TTS Active"
+                "edge" -> "Online TTS (${EdgeTts.getVoiceDisplayName(currentVoice)})"
+                else -> "Offline TTS (Android TTS)"
             }
             voice?.refreshPersonality()
             Toast.makeText(this, "TTS engine updated.", Toast.LENGTH_SHORT).show()
@@ -253,8 +326,8 @@ class SettingsActivity : AppCompatActivity() {
                 prefs.edit().putString("edge_voice_id", selectedVoice).apply()
                 val engine = prefs.getString("tts_engine", "system") ?: "system"
                 tvVoiceStatus.text = when (engine) {
-                    "edge" -> "Edge TTS Active (${EdgeTts.getVoiceDisplayName(selectedVoice)})"
-                    else -> "System TTS Active"
+                    "edge" -> "Online TTS (${EdgeTts.getVoiceDisplayName(selectedVoice)})"
+                    else -> "Offline TTS (Android TTS)"
                 }
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
@@ -263,12 +336,12 @@ class SettingsActivity : AppCompatActivity() {
         btnTestVoice.setOnClickListener {
             val engine = prefs.getString("tts_engine", "system") ?: "system"
             if (engine == "edge") {
-                val voiceId = prefs.getString("edge_voice_id", "en-US-AriaNeural") ?: "en-US-AriaNeural"
-                Toast.makeText(this, "Testing Edge TTS...", Toast.LENGTH_SHORT).show()
-                voice?.speak("Hello, Sir. This is Edge TTS speaking. How do you like my voice?")
+                val voiceId = prefs.getString("edge_voice_id", "en-GB-RyanNeural") ?: "en-GB-RyanNeural"
+                Toast.makeText(this, "Testing Online TTS (Edge TTS)...", Toast.LENGTH_SHORT).show()
+                voice?.speak("Hello, Sir. This is JARVIS online voice. How do you like my British accent?")
             } else {
-                Toast.makeText(this, "Testing System TTS...", Toast.LENGTH_SHORT).show()
-                voice?.speak("Hello, Sir. This is your system text to speech engine.")
+                Toast.makeText(this, "Testing Offline TTS (System TTS)...", Toast.LENGTH_SHORT).show()
+                voice?.speak("Hello, Sir. This is JARVIS offline voice. Fully local, no internet required.")
             }
         }
     }
@@ -354,6 +427,63 @@ class SettingsActivity : AppCompatActivity() {
                     Toast.makeText(this, "Please enable notification access in Settings > Apps > Special Access", Toast.LENGTH_LONG).show()
                 }
             }
+        }
+    }
+
+    // ─── App Selection ────────────────────────────────────────────────────
+    private fun setupAppSelectionSection() {
+        val btnSelectApps = findViewById<Button>(R.id.btn_select_apps)
+        val tvSelectedApps = findViewById<TextView>(R.id.tv_selected_apps)
+
+        val prefs = getSharedPreferences("javis_apps", MODE_PRIVATE)
+        val selectedApps = prefs.getStringSet("selected_packages", emptySet()) ?: emptySet()
+
+        btnSelectApps.setOnClickListener {
+            val pm = packageManager
+            val allApps = pm.getInstalledApplications(0)
+                .filter { pm.getLaunchIntentForPackage(it.packageName) != null }
+                .map { pm.getApplicationLabel(it).toString() to it.packageName }
+                .sortedBy { it.first }
+
+            val appNames = allApps.map { it.first }.toTypedArray()
+            val selectedIndices = selectedApps.mapNotNull { pkg ->
+                allApps.indexOfFirst { it.second == pkg }.takeIf { it >= 0 }
+            }.toSet()
+
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Select apps to show on home screen")
+                .setMultiChoiceItems(appNames, selectedIndices.toBooleanArray()) { _, index, isChecked ->
+                    val pkg = allApps[index].second
+                    val current = prefs.getStringSet("selected_packages", mutableSetOf()) ?: mutableSetOf()
+                    if (isChecked) {
+                        current.add(pkg)
+                    } else {
+                        current.remove(pkg)
+                    }
+                    prefs.edit().putStringSet("selected_packages", current).apply()
+                    updateSelectedAppsText(tvSelectedApps, current)
+                }
+                .setPositiveButton("Done") { _, _ ->
+                    Toast.makeText(this, "App selection updated", Toast.LENGTH_SHORT).show()
+                }
+                .show()
+        }
+
+        updateSelectedAppsText(tvSelectedApps, selectedApps)
+    }
+
+    private fun updateSelectedAppsText(tv: TextView, selectedApps: Set<String>) {
+        if (selectedApps.isEmpty()) {
+            tv.text = "No apps selected. Showing most used apps."
+        } else {
+            val pm = packageManager
+            val names = selectedApps.mapNotNull { pkg ->
+                try {
+                    val info = pm.getApplicationInfo(pkg, 0)
+                    pm.getApplicationLabel(info).toString()
+                } catch (e: Exception) { null }
+            }
+            tv.text = "Selected: ${names.joinToString(", ")}"
         }
     }
 

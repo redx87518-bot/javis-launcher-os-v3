@@ -50,9 +50,10 @@ class EdgeTts(private val context: Context) {
 
     fun isReady(): Boolean = true
 
-    fun speak(text: String, voiceId: String = "en-US-AriaNeural", onDone: (() -> Unit)? = null) {
+    fun speak(text: String, voiceId: String = "en-GB-RyanNeural", onDone: ((Exception?) -> Unit)? = null) {
         stop()
         executor.execute {
+            var success = false
             try {
                 val prefs = context.getSharedPreferences("javis_voice_prefs", Context.MODE_PRIVATE)
                 val savedVoice = prefs.getString("edge_voice_id", voiceId) ?: voiceId
@@ -60,21 +61,22 @@ class EdgeTts(private val context: Context) {
                 val token = fetchAuthToken()
                 if (token == null) {
                     Log.w(TAG, "Failed to get Edge TTS auth token")
-                    mainThread.post { onDone?.invoke() }
+                    mainThread.post { onDone?.invoke(Exception("Auth token fetch failed")) }
                     return@execute
                 }
 
                 val audioPath = requestTtsAudio(token, text, savedVoice)
                 if (audioPath == null) {
                     Log.w(TAG, "Failed to get TTS audio")
-                    mainThread.post { onDone?.invoke() }
+                    mainThread.post { onDone?.invoke(Exception("TTS audio request failed")) }
                     return@execute
                 }
 
                 playAudio(audioPath, onDone)
+                success = true
             } catch (e: Exception) {
                 Log.e(TAG, "Edge TTS failed", e)
-                mainThread.post { onDone?.invoke() }
+                mainThread.post { onDone?.invoke(e) }
             }
         }
     }
@@ -144,17 +146,17 @@ class EdgeTts(private val context: Context) {
         }
     }
 
-    private fun playAudio(filePath: String, onDone: (() -> Unit)?) {
+    private fun playAudio(filePath: String, onDone: ((Exception?) -> Unit)?) {
         try {
             mediaPlayer = MediaPlayer().apply {
                 setDataSource(filePath)
                 setOnCompletionListener {
                     File(filePath).delete()
-                    mainThread.post { onDone?.invoke() }
+                    mainThread.post { onDone?.invoke(null) }
                 }
                 setOnErrorListener { _, _, _ ->
                     File(filePath).delete()
-                    mainThread.post { onDone?.invoke() }
+                    mainThread.post { onDone?.invoke(Exception("MediaPlayer error")) }
                     true
                 }
                 prepare()
@@ -163,7 +165,7 @@ class EdgeTts(private val context: Context) {
         } catch (e: Exception) {
             Log.e(TAG, "Audio playback failed", e)
             File(filePath).delete()
-            mainThread.post { onDone?.invoke() }
+            mainThread.post { onDone?.invoke(e) }
         }
     }
 
