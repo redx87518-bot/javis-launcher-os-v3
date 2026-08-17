@@ -81,7 +81,7 @@ class VoiceEngine(private val context: Context) : TextToSpeech.OnInitListener {
                     v.locale == Locale.US && !v.name.lowercase().contains("female")
                 }
             }
-            selectedVoice?.let { t.voice = it }
+            (selectedVoice as? android.speech.tts.Voice)?.let { t.voice = it }
         }
 
         when (PersonalityEngine.currentMode) {

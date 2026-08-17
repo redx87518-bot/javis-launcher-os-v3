@@ -124,7 +124,7 @@ class EdgeTts(private val context: Context) {
             }
 
             val contentType = response.header("Content-Type", "")
-            if (contentType.contains("audio") || contentType.contains("octet-stream")) {
+            if ((contentType?.contains("audio") == true) || (contentType?.contains("octet-stream") == true)) {
                 val tempFile = File(context.cacheDir, "edge_tts_${System.currentTimeMillis()}.mp3")
                 tempFile.deleteOnExit()
                 response.body?.byteStream()?.use { input ->
