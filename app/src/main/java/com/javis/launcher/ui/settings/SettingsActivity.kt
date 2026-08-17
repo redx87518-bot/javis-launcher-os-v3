@@ -12,6 +12,7 @@ import com.javis.launcher.engine.PersonalityEngine
 import com.javis.launcher.engine.RoutineLearningEngine
 import com.javis.launcher.engine.WhatsAppEngine
 import com.javis.launcher.engine.ai.AIEngine
+import com.javis.launcher.engine.voice.EdgeTts
 import com.javis.launcher.engine.voice.VoiceEngine
 import com.javis.launcher.models.AIProvider
 import com.javis.launcher.ui.voice.VoiceDiagnosticsActivity
@@ -199,49 +200,76 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    // ─── Voice & Eleven Labs (V4) ────────────────────────────────────────
+    // ─── Voice Engine (V5) ────────────────────────────────────────────────
     private fun setupVoiceSection() {
         val rgTts = findViewById<RadioGroup>(R.id.rg_tts_engine)
-        val etElevenKey = findViewById<EditText>(R.id.et_eleven_api_key)
-        val etElevenVoice = findViewById<EditText>(R.id.et_eleven_voice_id)
-        val btnSaveVoice = findViewById<Button>(R.id.btn_save_voice)
+        val spinnerVoice = findViewById<Spinner>(R.id.spinner_voice)
         val tvVoiceStatus = findViewById<TextView>(R.id.tv_voice_status)
+        val btnTestVoice = findViewById<Button>(R.id.btn_test_voice)
 
         val prefs = getSharedPreferences("javis_voice_prefs", MODE_PRIVATE)
-        val savedEngine = prefs.getString("tts_engine", "system")
-        val savedKey = prefs.getString("eleven_api_key", "")
-        val savedVoice = prefs.getString("eleven_voice_id", "21m00Tcm4TlvDq8ikWAM")
+        val savedEngine = prefs.getString("tts_engine", "system") ?: "system"
+        val savedVoice = prefs.getString("edge_voice_id", "en-US-AriaNeural") ?: "en-US-AriaNeural"
 
-        etElevenKey.setText(savedKey)
-        etElevenVoice.setText(savedVoice)
+        val voiceAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item,
+            EdgeTts.VOICES.map { "${it.first} — ${it.second}" })
+        spinnerVoice.adapter = voiceAdapter
+
+        val voiceIndex = EdgeTts.VOICES.indexOfFirst { it.first == savedVoice }
+        spinnerVoice.setSelection(if (voiceIndex >= 0) voiceIndex else 0)
 
         val checkedId = when (savedEngine) {
-            "eleven" -> R.id.rb_tts_eleven
+            "edge" -> R.id.rb_tts_edge
             else -> R.id.rb_tts_system
         }
         rgTts.check(checkedId)
         tvVoiceStatus.text = when (savedEngine) {
-            "eleven" -> "Eleven Labs Active"
+            "edge" -> "Edge TTS Active (${EdgeTts.getVoiceDisplayName(savedVoice)})"
             else -> "System TTS Active"
         }
 
+        spinnerVoice.isEnabled = savedEngine == "edge"
+
         rgTts.setOnCheckedChangeListener { _, checkedId ->
-            val engine = if (checkedId == R.id.rb_tts_eleven) "eleven" else "system"
+            val engine = when (checkedId) {
+                R.id.rb_tts_edge -> "edge"
+                else -> "system"
+            }
             prefs.edit().putString("tts_engine", engine).apply()
-            tvVoiceStatus.text = if (engine == "eleven") "Eleven Labs Active" else "System TTS Active"
+            spinnerVoice.isEnabled = engine == "edge"
+
+            val currentVoice = prefs.getString("edge_voice_id", "en-US-AriaNeural") ?: "en-US-AriaNeural"
+            tvVoiceStatus.text = when (engine) {
+                "edge" -> "Edge TTS Active (${EdgeTts.getVoiceDisplayName(currentVoice)})"
+                else -> "System TTS Active"
+            }
             voice?.refreshPersonality()
             Toast.makeText(this, "TTS engine updated.", Toast.LENGTH_SHORT).show()
         }
 
-        btnSaveVoice.setOnClickListener {
-            val key = etElevenKey.text.toString().trim()
-            val voiceId = etElevenVoice.text.toString().trim().ifBlank { "21m00Tcm4TlvDq8ikWAM" }
-            prefs.edit()
-                .putString("eleven_api_key", key)
-                .putString("eleven_voice_id", voiceId)
-                .apply()
-            Toast.makeText(this, "Eleven Labs settings saved ✓", Toast.LENGTH_SHORT).show()
-            voice?.refreshPersonality()
+        spinnerVoice.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                val selectedVoice = EdgeTts.VOICES[position].first
+                prefs.edit().putString("edge_voice_id", selectedVoice).apply()
+                val engine = prefs.getString("tts_engine", "system") ?: "system"
+                tvVoiceStatus.text = when (engine) {
+                    "edge" -> "Edge TTS Active (${EdgeTts.getVoiceDisplayName(selectedVoice)})"
+                    else -> "System TTS Active"
+                }
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
+        btnTestVoice.setOnClickListener {
+            val engine = prefs.getString("tts_engine", "system") ?: "system"
+            if (engine == "edge") {
+                val voiceId = prefs.getString("edge_voice_id", "en-US-AriaNeural") ?: "en-US-AriaNeural"
+                Toast.makeText(this, "Testing Edge TTS...", Toast.LENGTH_SHORT).show()
+                voice?.speak("Hello, Sir. This is Edge TTS speaking. How do you like my voice?")
+            } else {
+                Toast.makeText(this, "Testing System TTS...", Toast.LENGTH_SHORT).show()
+                voice?.speak("Hello, Sir. This is your system text to speech engine.")
+            }
         }
     }
 
