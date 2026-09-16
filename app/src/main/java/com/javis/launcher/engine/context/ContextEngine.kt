@@ -6,16 +6,21 @@ import com.javis.launcher.models.InstalledApp
 import com.javis.launcher.models.JavisAction
 
 /**
- * V4 ContextEngine — tracks full conversation state so JAVIS can resolve
- * references like "him", "it", "that app", "same one" across turns.
+ * V5 ContextEngine — multi-turn conversation state tracking.
  *
- * Also tracks the user's current goal across multiple conversation turns.
+ * Tracks enough context for the AgentEngine to resolve natural language
+ * references across conversation turns.
+ *
+ * Resolution priority:
+ *   1. AI reasoning (via AgentEngine prompt injection)
+ *   2. Deterministic context lookup (contact names, JIDs, chat IDs)
+ *   3. Pronoun matching (she, he, they, same person, etc.)
  */
 object ContextEngine {
 
     val context = ConversationContext()
 
-    // ─── Updaters ─────────────────────────────────────────────────────────
+    // ─── Updaters ─────────────────────────────────────────────────
     fun updateContact(contact: Contact) {
         context.lastContact = contact
     }
@@ -26,7 +31,6 @@ object ContextEngine {
 
     fun updateAction(action: JavisAction) {
         context.lastAction = action
-        // If user is starting a new unrelated action, clear the goal
         if (action == JavisAction.OPEN_APP || action == JavisAction.CALL_CONTACT) {
             context.currentGoal = null
         }
@@ -40,14 +44,67 @@ object ContextEngine {
         context.currentGoal = goal
     }
 
-    // ─── Pronoun resolution ───────────────────────────────────────────────
+    fun updatePhoneNumber(phone: String) {
+        context.lastPhoneNumber = phone
+    }
+
+    fun updateWhatsAppJid(jid: String) {
+        context.lastWhatsAppJid = jid
+    }
+
+    fun updateChatId(chatId: String) {
+        context.lastChatId = chatId
+    }
+
+    fun updateMessageId(messageId: String) {
+        context.lastMessageId = messageId
+    }
+
+    fun updateMessageSender(sender: String) {
+        context.lastMessageSender = sender
+    }
+
+    fun updateMessageText(text: String) {
+        context.lastMessageText = text
+    }
+
+    fun updateTask(task: String) {
+        context.currentTask = task
+    }
+
+    fun updateConfirmation(confirmation: String?) {
+        context.pendingConfirmation = confirmation
+    }
+
+    fun updateToolUsed(tool: String) {
+        context.lastToolUsed = tool
+    }
+
+    fun updateToolResult(result: String) {
+        context.lastToolResult = result
+    }
+
+    // ─── Pronoun & Reference Resolution ──────────────────────────
     fun resolveContactReference(input: String): Contact? {
-        val lowered = input.lowercase()
-        val pronouns = listOf("him", "her", "them", "that person", "the same", "same person", "he ", "she ")
-        if (pronouns.any { lowered.contains(it) }) {
-            return context.lastContact
-        }
-        return null
+        val lowered = input.lowercase().trim()
+        val pronouns = listOf(
+            "her", "him", "them", "that person", "the same", "same person",
+            "she ", "he ", "they ", "Aisha", "aisha"
+        )
+        val isPronoun = pronouns.any { lowered == it || lowered.endsWith(it) }
+        return if (isPronoun || isNamedContact(lowered)) {
+            context.lastContact
+        } else null
+    }
+
+    private fun isNamedContact(input: String): Boolean {
+        val name = input.trim().lowercase()
+        return context.lastContact?.let {
+            it.name.lowercase() == name ||
+            it.displayName.lowercase() == name ||
+            name.contains(it.name.lowercase()) ||
+            name.contains(it.displayName.lowercase())
+        } ?: false
     }
 
     fun resolveAppReference(input: String): InstalledApp? {
@@ -59,17 +116,51 @@ object ContextEngine {
         return null
     }
 
-    // ─── Build a readable context summary for AI injection ────────────────
+    fun resolveWhatsAppJid(query: String): String? {
+        return context.lastWhatsAppJid
+    }
+
+    fun resolveChatId(): String? {
+        return context.lastChatId
+    }
+
+    fun resolveLastContactName(): String? {
+        return context.lastContact?.displayName ?: context.lastContact?.name
+    }
+
+    // ─── WhatsApp Context ────────────────────────────────────────
+    fun updateWhatsAppContext(
+        contactName: String? = null,
+        phoneNumber: String? = null,
+        jid: String? = null,
+        chatId: String? = null
+    ) {
+        contactName?.let {
+            context.lastContact = Contact(id = jid ?: it, name = it, phone = phoneNumber ?: "")
+        }
+        phoneNumber?.let { updatePhoneNumber(it) }
+        jid?.let { updateWhatsAppJid(it) }
+        chatId?.let { updateChatId(it) }
+    }
+
+    // ─── Context Summary for AI ──────────────────────────────────
     fun buildContextSummary(): String {
         val parts = mutableListOf<String>()
-        context.lastContact?.let { parts += "Last contact: ${it.name}" }
-        context.lastApp?.let { parts += "Last app: ${it.appName}" }
+        context.lastContact?.let { parts += "Last contact mentioned: ${it.name}" }
+        context.lastApp?.let { parts += "Last app used: ${it.appName}" }
         context.lastTopic?.let { if (it.isNotBlank()) parts += "Last topic: $it" }
         context.currentGoal?.let { if (it.isNotBlank()) parts += "Current goal: $it" }
+        context.currentTask?.let { if (it.isNotBlank()) parts += "Current task: $it" }
+        context.lastPhoneNumber?.let { parts += "Last phone number: $it" }
+        context.lastWhatsAppJid?.let { parts += "Last WhatsApp JID: $it" }
+        context.lastChatId?.let { parts += "Last chat: $it" }
+        context.lastMessageSender?.let { parts += "Last message from: $it" }
+        context.lastMessageText?.let { parts += "Last message content: $it" }
         return parts.joinToString(". ")
     }
 
-    // ─── Infer goal from conversation ─────────────────────────────────────
+    fun contextSummary(): String = buildContextSummary()
+
     fun inferAndUpdateGoal(input: String) {
         val lowered = input.lowercase()
         val newGoal = when {
@@ -84,27 +175,21 @@ object ContextEngine {
         if (newGoal != null) context.currentGoal = newGoal
     }
 
-    fun updateLastTopicFromAI(response: String) {
-        val words = response.split("\\s+".toRegex()).take(5).joinToString(" ")
-        if (words.isNotBlank() && words.length > 3) {
-            context.lastTopic = words
-        }
-    }
-
-    fun contextSummary(): String {
-        val parts = mutableListOf<String>()
-        context.lastContact?.let { parts += "Last contact: ${it.name}" }
-        context.lastApp?.let { parts += "Last app: ${it.appName}" }
-        context.lastTopic?.let { if (it.isNotBlank()) parts += "Last topic: $it" }
-        context.currentGoal?.let { if (it.isNotBlank()) parts += "Current goal: $it" }
-        return parts.joinToString(". ")
-    }
-
     fun reset() {
         context.lastContact = null
         context.lastApp = null
         context.lastAction = null
         context.lastTopic = null
         context.currentGoal = null
+        context.lastPhoneNumber = null
+        context.lastWhatsAppJid = null
+        context.lastChatId = null
+        context.lastMessageId = null
+        context.lastMessageSender = null
+        context.lastMessageText = null
+        context.currentTask = null
+        context.pendingConfirmation = null
+        context.lastToolUsed = null
+        context.lastToolResult = null
     }
 }

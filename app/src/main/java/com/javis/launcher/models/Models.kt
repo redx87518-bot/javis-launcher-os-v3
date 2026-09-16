@@ -22,7 +22,7 @@ data class ConversationMessage(
     val timestamp: Long = System.currentTimeMillis()
 )
 
-// ─── App Usage ─────────────────────────────────────────────────────────────
+// ─── App Usage ────────────────────────────────────────────────────────────
 @Entity(tableName = "app_usage")
 data class AppUsage(
     @PrimaryKey val packageName: String,
@@ -31,7 +31,7 @@ data class AppUsage(
     val lastUsed: Long = System.currentTimeMillis()
 )
 
-// ─── Contact Usage ─────────────────────────────────────────────────────────
+// ─── Contact Usage ────────────────────────────────────────────────────────
 @Entity(tableName = "contact_usage")
 data class ContactUsage(
     @PrimaryKey val contactId: String,
@@ -51,7 +51,7 @@ data class CommandLog(
     val timestamp: Long = System.currentTimeMillis()
 )
 
-// ─── Contact ───────────────────────────────────────────────────────────────
+// ─── Contact ────────────────────────────────────────────────────────────────
 data class Contact(
     val id: String,
     val name: String,
@@ -59,20 +59,20 @@ data class Contact(
     val photoUri: String? = null
 )
 
-// ─── Installed App ─────────────────────────────────────────────────────────
+// ─── Installed App ────────────────────────────────────────────────────────
 data class InstalledApp(
     val packageName: String,
     val appName: String,
     val icon: android.graphics.drawable.Drawable? = null
 )
 
-// ─── Chat Message (UI layer) ────────────────────────────────────────────────
+// ─── Chat Message (UI layer) ────────────────────────────────────────────
 data class ChatMessage(
     val text: String,
     val isUser: Boolean
 )
 
-// ─── AI Provider ───────────────────────────────────────────────────────────
+// ─── AI Provider ──────────────────────────────────────────────────────────
 enum class AIProvider { OPENROUTER, GROQ, DEEPSEEK }
 
 data class ProviderConfig(
@@ -84,7 +84,47 @@ data class ProviderConfig(
     var lastUsed: Long = 0
 )
 
-// ─── Intent Result ─────────────────────────────────────────────────────────
+// ─── WhatsApp Models ──────────────────────────────────────────────────────
+data class WhatsAppContact(
+    val id: String = "",
+    val displayName: String = "",
+    val phoneNumber: String = "",
+    val jid: String = "",
+    val verified: Boolean = false
+)
+
+data class WhatsAppChat(
+    val chatId: String = "",
+    val name: String = "",
+    val phoneNumber: String = "",
+    val jid: String = "",
+    val lastMessage: String = "",
+    val lastMessageTimestamp: Long = 0,
+    val unreadCount: Int = 0
+)
+
+data class WhatsAppMessage(
+    val id: String = "",
+    val chatId: String = "",
+    val senderId: String = "",
+    val senderName: String = "",
+    val text: String = "",
+    val timestamp: Long = 0,
+    val isFromMe: Boolean = false,
+    val isRead: Boolean = false,
+    val quotedMessageId: String? = null,
+    val quotedText: String? = null
+)
+
+data class WhatsAppConnectionState(
+    val isConnected: Boolean = false,
+    val isPairing: Boolean = false,
+    val pairCode: String? = null,
+    val errorMessage: String? = null,
+    val phoneNumber: String? = null
+)
+
+// ─── Intent Result ────────────────────────────────────────────────────────
 data class IntentResult(
     val action: JavisAction,
     val params: Map<String, String> = emptyMap(),
@@ -100,24 +140,36 @@ enum class JavisAction {
     CHAT,
     OPEN_SETTINGS,
     CLEAR_MISSED_CALLS,
-    SWITCH_PERSONALITY,    // V4: "switch to JARVIS mode"
-    ROUTINE_QUERY,         // V4: "what should I do?" / "any suggestions?"
-    SYSTEM_DIAGNOSTICS,    // V5: "system status", "run diagnostics"
-    WEATHER_QUERY,         // V5: "weather", "forecast"
-    NEWS_BRIEFING,         // V5: "news", "headlines"
-    AUTOMATION_ROUTINE,    // V5: "activate routine", "morning mode"
-    WHATSAPP_MESSAGE,      // V5: "send whatsapp", "reply to whatsapp"
-    WHATSAPP_READ,         // V5: "read whatsapp messages", "any new whatsapp"
+    SWITCH_PERSONALITY,
+    ROUTINE_QUERY,
+    SYSTEM_DIAGNOSTICS,
+    WEATHER_QUERY,
+    NEWS_BRIEFING,
+    AUTOMATION_ROUTINE,
+    WHATSAPP_MESSAGE,
+    WHATSAPP_READ,
+    WHATSAPP_LINK,
+    WHATSAPP_UNLINK,
     UNKNOWN
 }
 
-// ─── Context State ─────────────────────────────────────────────────────────
+// ─── Context State ────────────────────────────────────────────────────────
 data class ConversationContext(
     var lastContact: Contact? = null,
     var lastApp: InstalledApp? = null,
     var lastAction: JavisAction? = null,
     var lastTopic: String? = null,
-    var currentGoal: String? = null
+    var currentGoal: String? = null,
+    var lastPhoneNumber: String? = null,
+    var lastWhatsAppJid: String? = null,
+    var lastChatId: String? = null,
+    var lastMessageId: String? = null,
+    var lastMessageSender: String? = null,
+    var lastMessageText: String? = null,
+    var currentTask: String? = null,
+    var pendingConfirmation: String? = null,
+    var lastToolUsed: String? = null,
+    var lastToolResult: String? = null
 )
 
 // ─── Voice State ──────────────────────────────────────────────────────────

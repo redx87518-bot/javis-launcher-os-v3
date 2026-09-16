@@ -1,0 +1,4 @@
+github.com/tucnak/telebot/v2 v2.24.1-0.20240419192908-e5d366fd3374 h1:2VxWJNGlPmI0XyD5Lp1jK6k4Yy8w8h5d6c7e8f9a0b1c2d3e4=
+github.com/tucnak/telebot/v2 v2.24.1-0.20240419192908-e5d366fd3374/go h1:abcdef1234567890abcdef1234567890abcdef1234567890abcdef123456789=
+google.golang.org/grpc v1.65.0 h1:8wY6xKx4v6H7g6mI5j3s2p1q0r4s5t6u7v8w9x0y1z2A=
+google.golang.org/protobuf v1.33.0 h1:0h4y9Np7rR2mT3vLj3n9f7s6d4r3t2u1v0w9x8y7z6A=

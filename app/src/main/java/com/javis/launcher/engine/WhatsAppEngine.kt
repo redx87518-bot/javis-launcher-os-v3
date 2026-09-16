@@ -1,4 +1,4 @@
-package com.javis.launcher.engine
+package com.javis.launcher.engine.whatsapp
 
 import android.app.Notification
 import android.content.Context
@@ -9,6 +9,8 @@ import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
 import com.javis.launcher.JavisApplication
+import com.javis.launcher.engine.whatsapp.repository.WhatsAppRepository
+import com.javis.launcher.engine.whatsapp.WhatsAppModels.WhatsAppMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +20,12 @@ object WhatsAppEngine {
     const val TAG = "WhatsAppEngine"
     const val WHATSAPP_PACKAGE = "com.whatsapp"
     const val WHATSAPP_BUSINESS_PACKAGE = "com.whatsapp.w4b"
+
+    private val repository = try {
+        WhatsAppRepository(JavisApplication.instance.applicationContext)
+    } catch (e: Exception) {
+        null
+    }
 
     data class WhatsAppMessage(
         val id: String,
@@ -56,8 +64,8 @@ object WhatsAppEngine {
     }
 
     fun openChat(context: Context, phoneNumber: String, message: String? = null) {
-        val packageName = if (isAppInstalled(context, WHATSAPP_PACKAGE)) WHATSAPP_PACKAGE else WHATSAPP_BUSINESS_PACKAGE
-        if (!isAppInstalled(context, packageName)) {
+        val packageName = if (isWhatsAppInstalled(context)) WHATSAPP_PACKAGE else WHATSAPP_BUSINESS_PACKAGE
+        if (!isWhatsAppInstalled(context)) {
             Log.w(TAG, "WhatsApp not installed")
             return
         }
@@ -101,6 +109,18 @@ object WhatsAppEngine {
             current.add(0, message)
         }
         _messages.value = current.take(20)
+        repository?.addMessage(
+            WhatsAppMessage(
+                id = message.id,
+                chatId = "",
+                senderId = "",
+                senderName = message.contactName,
+                text = message.message,
+                timestamp = message.timestamp,
+                isFromMe = false,
+                isRead = false
+            )
+        )
     }
 
     fun processNotification(notification: StatusBarNotification) {

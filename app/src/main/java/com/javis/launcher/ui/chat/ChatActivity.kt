@@ -15,9 +15,13 @@ import com.javis.launcher.JavisApplication
 import com.javis.launcher.R
 import com.javis.launcher.engine.ThinkingEngine
 import com.javis.launcher.engine.ai.AIEngine
+import com.javis.launcher.engine.agent.AgentEngine
+import com.javis.launcher.engine.agent.AgentResult
 import com.javis.launcher.engine.context.ContextEngine
 import com.javis.launcher.engine.execution.ExecutionEngine
 import com.javis.launcher.engine.execution.ExecutionResult
+import com.javis.launcher.engine.whatsapp.WhatsmeowWhatsAppClient
+import com.javis.launcher.engine.whatsapp.tools.*
 import kotlinx.coroutines.launch
 
 class ChatActivity : AppCompatActivity() {
@@ -26,6 +30,7 @@ class ChatActivity : AppCompatActivity() {
     private val voice  get() = JavisApplication.instance.voiceEngine
     private lateinit var ai: AIEngine
     private lateinit var execution: ExecutionEngine
+    private lateinit var agentEngine: AgentEngine
     private lateinit var adapter: ChatAdapter
     private val messages = mutableListOf<ChatMessage>()
 
@@ -45,12 +50,32 @@ class ChatActivity : AppCompatActivity() {
 
         ai        = AIEngine(this)
         execution = ExecutionEngine(this)
+        agentEngine = AgentEngine(this)
+
+        // Register WhatsApp tools with AgentEngine
+        try {
+            val whatsappClient = WhatsmeowWhatsAppClient(this)
+            agentEngine.registerWhatsAppTools(listOf(
+                WhatsAppConnectionTool(whatsappClient),
+                WhatsAppLinkTool(whatsappClient),
+                WhatsAppDisconnectTool(whatsappClient),
+                WhatsAppFindContactTool(whatsappClient),
+                WhatsAppGetChatTool(whatsappClient),
+                WhatsAppGetRecentMessagesTool(whatsappClient),
+                WhatsAppGetUnreadMessagesTool(whatsappClient),
+                WhatsAppSearchMessagesTool(whatsappClient),
+                WhatsAppGetMessageTool(whatsappClient),
+                WhatsAppSendMessageTool(whatsappClient),
+                WhatsAppReplyTool(whatsappClient)
+            ))
+        } catch (e: Exception) {
+            Log.e("ChatActivity", "Failed to register WhatsApp tools", e)
+        }
 
         adapter = ChatAdapter(messages)
         rvChat.layoutManager = LinearLayoutManager(this).apply { stackFromEnd = true }
         rvChat.adapter = adapter
 
-        // V4: load up to 50 recent messages for context
         val mem = memory
         if (mem != null) {
             lifecycleScope.launch {
@@ -97,38 +122,9 @@ class ChatActivity : AppCompatActivity() {
             mem.saveMessage("user", text)
             ContextEngine.inferAndUpdateGoal(text)
 
-            val thought = ThinkingEngine.think(text)
-            ContextEngine.updateAction(thought.intentResult.action)
-
-            val response: String = when (thought.category) {
-                ThinkingEngine.Category.LOCAL_ACTION -> {
-                    val result = execution.execute(thought.intentResult)
-                    when (result) {
-                        is ExecutionResult.Success           -> result.message
-                        is ExecutionResult.NeedsConfirmation -> result.message
-                        is ExecutionResult.Failure           ->
-                            if (result.message == "CHAT") {
-                                val history = mem.getRecentHistory(50)
-                                ai.chat(thought.enrichedPrompt ?: text, history)
-                            } else result.message
-                    }
-                }
-                ThinkingEngine.Category.MEMORY_QUERY -> {
-                    val result = execution.execute(thought.intentResult)
-                    (result as? ExecutionResult.Success)?.message
-                        ?: (result as? ExecutionResult.Failure)?.message
-                        ?: "I don't have that stored."
-                }
-                ThinkingEngine.Category.AI_CONVERSATION,
-                ThinkingEngine.Category.HYBRID -> {
-                    val history = mem.getRecentHistory(50)
-                    try {
-                        ai.chat(thought.enrichedPrompt ?: text, history)
-                    } catch (e: Exception) {
-                        "I'm having trouble connecting to my brain right now, Sir."
-                    }
-                }
-            }
+            // V5: Use AgentEngine as primary path
+            val result = agentEngine.process(text)
+            val response = result.response
 
             mem.saveMessage("assistant", response)
             addMessage(response, isUser = false)

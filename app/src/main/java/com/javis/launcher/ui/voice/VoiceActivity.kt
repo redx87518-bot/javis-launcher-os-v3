@@ -13,11 +13,11 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.javis.launcher.JavisApplication
 import com.javis.launcher.R
-import com.javis.launcher.engine.ThinkingEngine
 import com.javis.launcher.engine.ai.AIEngine
+import android.util.Log
+import com.javis.launcher.engine.agent.AgentEngine
 import com.javis.launcher.engine.context.ContextEngine
 import com.javis.launcher.engine.execution.ExecutionEngine
-import com.javis.launcher.engine.execution.ExecutionResult
 import com.javis.launcher.engine.voice.SpeechRecognitionEngine
 import com.javis.launcher.models.VoiceState
 import kotlinx.coroutines.launch
@@ -27,6 +27,7 @@ class VoiceActivity : AppCompatActivity() {
     private lateinit var recognition: SpeechRecognitionEngine
     private lateinit var execution: ExecutionEngine
     private lateinit var ai: AIEngine
+    private lateinit var agentEngine: AgentEngine
     private val voice  get() = JavisApplication.instance.voiceEngine
     private val memory get() = JavisApplication.instance.memoryEngine
 
@@ -52,6 +53,26 @@ class VoiceActivity : AppCompatActivity() {
         recognition = SpeechRecognitionEngine(this)
         execution   = ExecutionEngine(this)
         ai          = AIEngine(this)
+        agentEngine = AgentEngine(this)
+
+        try {
+            val whatsappClient = com.javis.launcher.engine.whatsapp.WhatsmeowWhatsAppClient(this)
+            agentEngine.registerWhatsAppTools(listOf(
+                com.javis.launcher.engine.whatsapp.tools.WhatsAppConnectionTool(whatsappClient),
+                com.javis.launcher.engine.whatsapp.tools.WhatsAppLinkTool(whatsappClient),
+                com.javis.launcher.engine.whatsapp.tools.WhatsAppDisconnectTool(whatsappClient),
+                com.javis.launcher.engine.whatsapp.tools.WhatsAppFindContactTool(whatsappClient),
+                com.javis.launcher.engine.whatsapp.tools.WhatsAppGetChatTool(whatsappClient),
+                com.javis.launcher.engine.whatsapp.tools.WhatsAppGetRecentMessagesTool(whatsappClient),
+                com.javis.launcher.engine.whatsapp.tools.WhatsAppGetUnreadMessagesTool(whatsappClient),
+                com.javis.launcher.engine.whatsapp.tools.WhatsAppSearchMessagesTool(whatsappClient),
+                com.javis.launcher.engine.whatsapp.tools.WhatsAppGetMessageTool(whatsappClient),
+                com.javis.launcher.engine.whatsapp.tools.WhatsAppSendMessageTool(whatsappClient),
+                com.javis.launcher.engine.whatsapp.tools.WhatsAppReplyTool(whatsappClient)
+            ))
+        } catch (e: Exception) {
+            Log.e("VoiceActivity", "Failed to register WhatsApp tools", e)
+        }
 
         setupVoiceCallbacks()
 
@@ -69,7 +90,7 @@ class VoiceActivity : AppCompatActivity() {
         else requestAudioPermission()
     }
 
-    // ─── Speech Callbacks ─────────────────────────────────────────────────
+    // ─── Speech Callbacks ─────────────────────────────────
     private fun setupVoiceCallbacks() {
         recognition.setCallback(object : SpeechRecognitionEngine.RecognitionCallback {
             override fun onListeningStarted() {
@@ -97,7 +118,6 @@ class VoiceActivity : AppCompatActivity() {
 
             override fun onSilence() {
                 runOnUiThread {
-                    // Only restart if we're not in the middle of processing
                     if (state == VoiceState.LISTENING || state == VoiceState.IDLE) {
                         handler.postDelayed({ if (!isFinishing) startListening() }, 300)
                     }
@@ -106,68 +126,20 @@ class VoiceActivity : AppCompatActivity() {
         })
     }
 
-    // ─── V4 ThinkingEngine pipeline ───────────────────────────────────────
+    // ─── V5 Agent pipeline ───────────────────────────────
     private fun processInput(input: String) {
         val mem = memory ?: return
         lifecycleScope.launch {
             mem.saveMessage("user", input)
             ContextEngine.inferAndUpdateGoal(input)
 
-            val thought = ThinkingEngine.think(input)
-            ContextEngine.updateAction(thought.intentResult.action)
+            setState(VoiceState.EXECUTING)
+            val result = agentEngine.process(input)
+            val response = result.response
 
-            when (thought.category) {
-                ThinkingEngine.Category.LOCAL_ACTION -> {
-                    setState(VoiceState.EXECUTING)
-                    val result = execution.execute(thought.intentResult)
-                    when (result) {
-                        is ExecutionResult.Success -> {
-                            mem.saveMessage("assistant", result.message)
-                            respond(result.message)
-                        }
-                        is ExecutionResult.NeedsConfirmation -> {
-                            mem.saveMessage("assistant", result.message)
-                            respond(result.message, restartSoon = true)
-                        }
-                        is ExecutionResult.Failure -> {
-                            if (result.message == "CHAT") {
-                                sendToAI(thought.enrichedPrompt ?: input)
-                            } else {
-                                mem.saveMessage("assistant", result.message)
-                                respond(result.message)
-                            }
-                        }
-                    }
-                }
-
-                ThinkingEngine.Category.MEMORY_QUERY -> {
-                    val result = execution.execute(thought.intentResult)
-                    val msg = (result as? ExecutionResult.Success)?.message
-                        ?: (result as? ExecutionResult.Failure)?.message
-                        ?: "I don't have that stored."
-                    mem.saveMessage("assistant", msg)
-                    respond(msg)
-                }
-
-                ThinkingEngine.Category.AI_CONVERSATION,
-                ThinkingEngine.Category.HYBRID -> {
-                    sendToAI(thought.enrichedPrompt ?: input)
-                }
-            }
+            mem.saveMessage("assistant", response)
+            respond(response)
         }
-    }
-
-    private suspend fun sendToAI(prompt: String) {
-        val mem = memory ?: return
-        val history = mem.getRecentHistory(50)
-        val response = try {
-            ai.chat(prompt, history)
-        } catch (e: Exception) {
-            "I'm having trouble connecting to my brain right now, Sir."
-        }
-        mem.saveMessage("assistant", response)
-        mem.logCommand("AI Chat", prompt.take(50), "Responded")
-        respond(response)
     }
 
     private fun respond(text: String, restartSoon: Boolean = false) {
@@ -190,7 +162,7 @@ class VoiceActivity : AppCompatActivity() {
         }
     }
 
-    // ─── State machine ────────────────────────────────────────────────────
+    // ─── State machine ────────────────────────────────────
     private fun setState(newState: VoiceState) {
         state = newState
         orbView.setState(newState)
