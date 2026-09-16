@@ -5,11 +5,13 @@ import android.util.Log
 import com.javis.launcher.engine.ai.AIEngine
 import com.javis.launcher.engine.context.ContextEngine
 import com.javis.launcher.engine.execution.ExecutionEngine
+import com.javis.launcher.engine.execution.ExecutionResult
 import com.javis.launcher.engine.intent.IntentAnalyzer
 import com.javis.launcher.engine.memory.MemoryEngine
 import com.javis.launcher.engine.voice.VoiceEngine
 import com.javis.launcher.models.AIProvider
 import com.javis.launcher.models.ConversationMessage
+import com.javis.launcher.models.JavisAction
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlinx.coroutines.Dispatchers
@@ -137,8 +139,18 @@ class AgentEngine(
         } catch (e: Exception) {
             Log.e(TAG, "Agent process error", e)
             session = session.copy(status = AgentStatus.ERROR)
+            var fallbackResponse: String? = null
+            val intent = IntentAnalyzer.analyze(userInput)
+            if (intent.action != JavisAction.CHAT && intent.action != JavisAction.UNKNOWN && intent.confidence >= 0.5f) {
+                try {
+                    val result = executionEngine?.execute(intent)
+                    if (result is ExecutionResult.Success) {
+                        fallbackResponse = result.message
+                    }
+                } catch (_: Exception) {}
+            }
             AgentResult(
-                response = "I encountered an issue processing that, Sir. Let me try again.",
+                response = fallbackResponse ?: "I encountered an issue processing that, Sir. Let me try again.",
                 needsConfirmation = false,
                 session = session
             )
