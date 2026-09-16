@@ -31,7 +31,7 @@ object ThemeManager {
 
     fun getTheme(context: Context): String {
         return context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-            .getString(KEY_THEME, THEME_RED) ?: THEME_RED
+            .getString(KEY_THEME, THEME_BLUE) ?: THEME_BLUE
     }
 
     fun setTheme(context: Context, theme: String) {

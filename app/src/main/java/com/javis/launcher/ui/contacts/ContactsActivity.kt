@@ -25,7 +25,7 @@ import kotlinx.coroutines.withContext
 
 class ContactsActivity : AppCompatActivity() {
 
-    private val memory get() = JavisApplication.instance.memoryEngine!!
+    private val memory get() = JavisApplication.instance.memoryEngine
 
     override fun onCreate(savedInstanceState: Bundle?) {
         applySavedTheme()

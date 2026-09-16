@@ -21,7 +21,7 @@ import java.util.*
 
 class CommandCenterActivity : AppCompatActivity() {
 
-    private val memory get() = JavisApplication.instance.memoryEngine!!
+    private val memory get() = JavisApplication.instance.memoryEngine
 
     override fun onCreate(savedInstanceState: Bundle?) {
         applySavedTheme()
@@ -40,9 +40,9 @@ class CommandCenterActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.tv_ai_status).text =
             if (prov != null) "AI Provider: ${prov.name}" else "AI Provider: Not configured"
 
-        val voice = JavisApplication.instance.voiceEngine!!
+        val voice = JavisApplication.instance.voiceEngine
         findViewById<TextView>(R.id.tv_voice_status).text =
-            "TTS Engine: ${if (voice.isReady()) "Ready" else "Initializing..."}"
+            "TTS Engine: ${if (voice?.isReady() == true) "Ready" else "Initializing..."}"
 
         findViewById<TextView>(R.id.tv_personality_status).text =
             "Personality: ${PersonalityEngine.modeName()}"

@@ -12,7 +12,7 @@ import com.javis.launcher.util.ThemeManager
 
 class VoiceDiagnosticsActivity : AppCompatActivity() {
 
-    private val voice get() = JavisApplication.instance.voiceEngine!!
+    private val voice get() = JavisApplication.instance.voiceEngine
 
     override fun onCreate(savedInstanceState: Bundle?) {
         applySavedTheme()

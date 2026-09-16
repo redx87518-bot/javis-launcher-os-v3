@@ -31,8 +31,8 @@ import java.io.FileOutputStream
 
 class SettingsActivity : AppCompatActivity() {
 
-    private val memory get() = JavisApplication.instance.memoryEngine!!
-    private val voice get() = JavisApplication.instance.voiceEngine!!
+    private val memory get() = JavisApplication.instance.memoryEngine
+    private val voice get() = JavisApplication.instance.voiceEngine
     private lateinit var ai: AIEngine
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -166,7 +166,7 @@ class SettingsActivity : AppCompatActivity() {
             ThemeManager.THEME_GREEN -> R.id.rb_theme_green
             ThemeManager.THEME_PURPLE -> R.id.rb_theme_purple
             ThemeManager.THEME_ORANGE -> R.id.rb_theme_orange
-            else -> R.id.rb_theme_red
+            else -> R.id.rb_theme_blue
         }
         rgTheme.check(checkedId)
 
