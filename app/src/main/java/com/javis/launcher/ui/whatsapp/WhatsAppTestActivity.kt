@@ -15,22 +15,26 @@ class WhatsAppTestActivity : AppCompatActivity() {
         setContentView(R.layout.activity_whatsapp_test)
 
         val tvResult = findViewById<TextView>(R.id.tv_test_result)
-        val repo = WhatsAppRepository(this)
+        try {
+            val repo = WhatsAppRepository(this)
 
-        val status = repo.connectionState.value
-        val phone = repo.getStoredPhoneNumber()
-        val connected = repo.isConnected()
+            val status = repo.connectionState.value
+            val phone = repo.getStoredPhoneNumber()
+            val connected = repo.isConnected()
 
-        val text = buildString {
-            appendLine("Connection: ${status.isConnected}")
-            appendLine("Pairing: ${status.isPairing}")
-            appendLine("Phone: ${phone ?: "none"}")
-            appendLine("Connected: $connected")
-            appendLine("Error: ${status.errorMessage ?: "none"}")
-            appendLine("Messages stored: ${repo.messages.value.size}")
-            appendLine("Chats stored: ${repo.chats.value.size}")
+            val text = buildString {
+                appendLine("Connection: ${status.isConnected}")
+                appendLine("Pairing: ${status.isPairing}")
+                appendLine("Phone: ${phone ?: "none"}")
+                appendLine("Connected: $connected")
+                appendLine("Error: ${status.errorMessage ?: "none"}")
+                appendLine("Messages stored: ${repo.messages.value.size}")
+                appendLine("Chats stored: ${repo.chats.value.size}")
+            }
+            tvResult.text = text
+        } catch (e: Exception) {
+            tvResult.text = "Error: ${e.message}"
         }
-        tvResult.text = text
     }
 
     private fun applySavedTheme() {

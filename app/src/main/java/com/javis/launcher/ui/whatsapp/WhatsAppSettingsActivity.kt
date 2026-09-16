@@ -41,20 +41,20 @@ class WhatsAppSettingsActivity : AppCompatActivity() {
         btnLink.visibility = View.VISIBLE
         btnDisconnect.visibility = View.GONE
 
-        btnLink.setOnClickListener {
+        btnLink?.setOnClickListener {
             startActivity(Intent(this, com.javis.launcher.ui.whatsapp.link.WhatsAppLinkActivity::class.java))
         }
-        btnTest.setOnClickListener {
+        btnTest?.setOnClickListener {
             voice?.speak("Testing WhatsApp connection, Sir.")
         }
-        btnDisconnect.setOnClickListener {
+        btnDisconnect?.setOnClickListener {
             voice?.speak("WhatsApp disconnected, Sir.")
             connectionState.text = "Disconnected"
             connectionState.setTextColor(getColor(android.R.color.holo_red_dark))
             btnLink.visibility = View.VISIBLE
             btnDisconnect.visibility = View.GONE
         }
-        btnClear.setOnClickListener {
+        btnClear?.setOnClickListener {
             Toast.makeText(this, "Session cleared.", Toast.LENGTH_SHORT).show()
         }
 

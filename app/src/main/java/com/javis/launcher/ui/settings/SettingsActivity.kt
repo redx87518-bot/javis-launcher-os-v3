@@ -418,8 +418,12 @@ class SettingsActivity : AppCompatActivity() {
             Toast.makeText(this, "WhatsApp integration ${if (isChecked) "enabled" else "disabled"}", Toast.LENGTH_SHORT).show()
         }
 
-        btnLinkWhatsApp.setOnClickListener {
-            startActivity(Intent(this, com.javis.launcher.ui.whatsapp.link.WhatsAppLinkActivity::class.java))
+        btnLinkWhatsApp?.setOnClickListener {
+            try {
+                startActivity(Intent(this, com.javis.launcher.ui.whatsapp.link.WhatsAppLinkActivity::class.java))
+            } catch (e: Exception) {
+                Toast.makeText(this, "Could not open WhatsApp linking. Please try again.", Toast.LENGTH_SHORT).show()
+            }
         }
 
         btnOpenNotificationSettings.setOnClickListener {

@@ -72,7 +72,7 @@
             android:exported="false" />
         <activity android:name=".ui.whatsapp.WhatsAppSettingsActivity"
             android:exported="false" />
-        <activity android:name=".ui.whatsapp.WhatsAppLinkActivity"
+        <activity android:name=".ui.whatsapp.link.WhatsAppLinkActivity"
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity android:name=".ui.whatsapp.WhatsAppPermissionActivity"

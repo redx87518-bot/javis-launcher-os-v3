@@ -33,11 +33,19 @@ class WhatsAppMainActivity : AppCompatActivity() {
         tvSession.text = if (isConnected) "Active session" else "No active session"
         tvConnection.text = if (isConnected) "Healthy" else "Not connected"
 
-        btnLink.setOnClickListener {
-            startActivity(Intent(this, com.javis.launcher.ui.whatsapp.link.WhatsAppLinkActivity::class.java))
+        btnLink?.setOnClickListener {
+            try {
+                startActivity(Intent(this, com.javis.launcher.ui.whatsapp.link.WhatsAppLinkActivity::class.java))
+            } catch (e: Exception) {
+                Toast.makeText(this, "Could not open WhatsApp linking", Toast.LENGTH_SHORT).show()
+            }
         }
-        btnSettings.setOnClickListener {
-            startActivity(Intent(this, WhatsAppSettingsActivity::class.java))
+        btnSettings?.setOnClickListener {
+            try {
+                startActivity(Intent(this, WhatsAppSettingsActivity::class.java))
+            } catch (e: Exception) {
+                Toast.makeText(this, "Could not open settings", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

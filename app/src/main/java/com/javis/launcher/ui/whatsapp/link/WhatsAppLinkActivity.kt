@@ -47,10 +47,10 @@ class WhatsAppLinkActivity : AppCompatActivity() {
         btnClear = findViewById(R.id.btn_clear_session)
         progressBar = findViewById(R.id.progress_bar)
 
-        btnLink.setOnClickListener { startPairing() }
-        btnPair.setOnClickListener { confirmPairing() }
-        btnDisconnect.setOnClickListener { disconnect() }
-        btnClear.setOnClickListener { clearSession() }
+        btnLink?.setOnClickListener { startPairing() }
+        btnPair?.setOnClickListener { confirmPairing() }
+        btnDisconnect?.setOnClickListener { disconnect() }
+        btnClear?.setOnClickListener { clearSession() }
 
         updatePhase(0)
     }
