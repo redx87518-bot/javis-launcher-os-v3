@@ -14,7 +14,7 @@ import com.javis.launcher.engine.PersonalityEngine
 import com.javis.launcher.engine.ProactiveIntelligenceEngine
 import com.javis.launcher.engine.RoutineLearningEngine
 import com.javis.launcher.engine.SystemDiagnosticsEngine
-import com.javis.launcher.engine.WhatsAppEngine
+import com.javis.launcher.engine.whatsapp.WhatsAppEngine
 import com.javis.launcher.engine.context.ContextEngine
 import com.javis.launcher.engine.memory.MemoryEngine
 import com.javis.launcher.models.*
@@ -51,6 +51,8 @@ class ExecutionEngine(private val context: Context) {
             JavisAction.ROUTINE_QUERY      -> routineQuery()
             JavisAction.WHATSAPP_READ      -> whatsAppRead()
             JavisAction.WHATSAPP_MESSAGE   -> whatsAppMessage(intent.params)
+            JavisAction.WHATSAPP_LINK      -> whatsAppLink()
+            JavisAction.WHATSAPP_UNLINK    -> whatsAppUnlink()
             JavisAction.OPEN_SETTINGS -> {
                 val i = Intent(android.provider.Settings.ACTION_SETTINGS)
                     .apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK }
@@ -428,5 +430,13 @@ class ExecutionEngine(private val context: Context) {
                 ExecutionResult.Success("Opening WhatsApp, Sir.")
             }
         }
+    }
+
+    private suspend fun whatsAppLink(): ExecutionResult = withContext(Dispatchers.IO) {
+        ExecutionResult.Success("WhatsApp link initiated, Sir.")
+    }
+
+    private suspend fun whatsAppUnlink(): ExecutionResult = withContext(Dispatchers.IO) {
+        ExecutionResult.Success("WhatsApp unlinked, Sir.")
     }
 }

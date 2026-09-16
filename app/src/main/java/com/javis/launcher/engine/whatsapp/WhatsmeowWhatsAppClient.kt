@@ -2,7 +2,6 @@ package com.javis.launcher.engine.whatsapp
 
 import android.content.Context
 import kotlinx.coroutines.flow.Flow
-import com.javis.launcher.engine.whatsapp.WhatsAppModels.*
 
 class WhatsmeowWhatsAppClient(private val context: Context) : WhatsAppClient {
 

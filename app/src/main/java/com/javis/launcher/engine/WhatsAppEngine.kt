@@ -10,7 +10,6 @@ import android.service.notification.StatusBarNotification
 import android.util.Log
 import com.javis.launcher.JavisApplication
 import com.javis.launcher.engine.whatsapp.repository.WhatsAppRepository
-import com.javis.launcher.engine.whatsapp.WhatsAppModels.WhatsAppMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow

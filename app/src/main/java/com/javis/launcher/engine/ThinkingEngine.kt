@@ -48,7 +48,9 @@ object ThinkingEngine {
             JavisAction.NEWS_BRIEFING,
             JavisAction.AUTOMATION_ROUTINE,
             JavisAction.WHATSAPP_READ,
-            JavisAction.WHATSAPP_MESSAGE ->
+            JavisAction.WHATSAPP_MESSAGE,
+            JavisAction.WHATSAPP_LINK,
+            JavisAction.WHATSAPP_UNLINK ->
                 ThinkingResult(Category.LOCAL_ACTION, intent)
 
             // ── Calls: local, context-aware ────────────────────────────

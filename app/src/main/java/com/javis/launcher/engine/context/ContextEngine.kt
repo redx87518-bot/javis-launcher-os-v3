@@ -101,7 +101,6 @@ object ContextEngine {
         val name = input.trim().lowercase()
         return context.lastContact?.let {
             it.name.lowercase() == name ||
-            it.displayName.lowercase() == name ||
             name.contains(it.name.lowercase()) ||
             name.contains(it.displayName.lowercase())
         } ?: false
@@ -125,7 +124,7 @@ object ContextEngine {
     }
 
     fun resolveLastContactName(): String? {
-        return context.lastContact?.displayName ?: context.lastContact?.name
+        return context.lastContact?.name ?: context.lastContact?.name
     }
 
     // ─── WhatsApp Context ────────────────────────────────────────

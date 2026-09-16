@@ -75,14 +75,14 @@ class AgentEngine(
                 session = session.copy(status = AgentStatus.UNDERSTANDING)
 
                 val observation = observe(userInput, stepCount)
-                session = session.copy(steps = session.steps + AgentStep(observation = observation))
+                session.steps.add(AgentStep(observation = observation, thought = ""))
 
                 session = session.copy(status = AgentStatus.PLANNING)
                 val planResult = planAndExecute(ctx, observation, stepCount)
 
                 when (planResult) {
                     is PlanResult.Continue -> {
-                        session = session.copy(steps = session.steps + AgentStep(
+                        session.steps.add(AgentStep(
                             observation = planResult.observation,
                             thought = planResult.thought,
                             action = planResult.action,
@@ -92,14 +92,12 @@ class AgentEngine(
                         continueLoop = true
                     }
                     is PlanResult.Respond -> {
-                        session = session.copy(
-                            status = AgentStatus.RESPONDING,
-                            steps = session.steps + AgentStep(
-                                observation = planResult.observation,
-                                thought = planResult.thought,
-                                response = planResult.response
-                            )
-                        )
+                        session.steps.add(AgentStep(
+                            observation = "",
+                            thought = "",
+                            response = planResult.response
+                        ))
+                        session = session.copy(status = AgentStatus.RESPONDING)
                         continueLoop = false
                         return@withContext AgentResult(
                             response = planResult.response ?: "Done, Sir.",
@@ -273,15 +271,15 @@ class AgentEngine(
     }
 
     private suspend fun executeTool(name: String, args: Map<String, Any?>): ToolResult {
-        contextEngine.lastToolUsed = name
-        contextEngine.lastToolResult = args.toString()
+        contextEngine.context.lastToolUsed = name
+        contextEngine.context.lastToolResult = args.toString()
 
         return try {
             val tool = toolRegistry.getTool(name)
                 ?: return ToolResult.Failed("Unknown tool: $name", retryable = true)
             val result = tool.execute(args)
             if (result is ToolResult.Success) {
-                contextEngine.lastToolResult = result.data.toString()
+                contextEngine.context.lastToolResult = result.data.toString()
             }
             result
         } catch (e: Exception) {

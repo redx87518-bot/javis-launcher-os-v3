@@ -1,6 +1,6 @@
 package com.javis.launcher.engine.whatsapp.repository
 
-import com.javis.launcher.engine.whatsapp.WhatsAppModels.WhatsAppMessage
+import com.javis.launcher.engine.whatsapp.WhatsAppMessage
 
 data class WhatsAppMessageMapping(
     val remoteMessageId: String,

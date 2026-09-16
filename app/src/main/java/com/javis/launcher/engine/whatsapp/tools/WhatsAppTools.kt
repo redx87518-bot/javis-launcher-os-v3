@@ -1,15 +1,17 @@
 package com.javis.launcher.engine.whatsapp.tools
 
 import android.content.Context
-import com.javis.launcher.engine.agent.AgentTool
+import com.javis.launcher.engine.agent.JavisTool
 import com.javis.launcher.engine.agent.ToolResult
 import com.javis.launcher.engine.whatsapp.WhatsAppClient
-import com.javis.launcher.engine.whatsapp.WhatsAppModels.*
+import com.javis.launcher.engine.whatsapp.WhatsAppChat
+import com.javis.launcher.engine.whatsapp.WhatsAppContact
+import com.javis.launcher.engine.whatsapp.WhatsAppMessage
 import org.json.JSONObject
 
 class WhatsAppConnectionTool(
     private val client: WhatsAppClient
-) : AgentTool {
+) : JavisTool {
     override val name: String = "whatsapp.connection_status"
     override val description: String = "Check the current WhatsApp connection status."
     override val parametersSchema: JSONObject? = null
@@ -33,7 +35,7 @@ class WhatsAppConnectionTool(
 
 class WhatsAppLinkTool(
     private val client: WhatsAppClient
-) : AgentTool {
+) : JavisTool {
     override val name: String = "whatsapp.link_account"
     override val description: String = "Link WhatsApp account using phone number."
     override val parametersSchema: JSONObject? = JSONObject("{\"phoneNumber\":\"string\"}")
@@ -54,7 +56,7 @@ class WhatsAppLinkTool(
 
 class WhatsAppDisconnectTool(
     private val client: WhatsAppClient
-) : AgentTool {
+) : JavisTool {
     override val name: String = "whatsapp.disconnect"
     override val description: String = "Disconnect WhatsApp session."
     override val parametersSchema: JSONObject? = null
@@ -71,7 +73,7 @@ class WhatsAppDisconnectTool(
 
 class WhatsAppFindContactTool(
     private val client: WhatsAppClient
-) : AgentTool {
+) : JavisTool {
     override val name: String = "whatsapp.find_contact"
     override val description: String = "Find a WhatsApp contact by name or phone number."
     override val parametersSchema: JSONObject? = JSONObject("{\"query\":\"string\"}")
@@ -96,7 +98,7 @@ class WhatsAppFindContactTool(
 
 class WhatsAppGetChatTool(
     private val client: WhatsAppClient
-) : AgentTool {
+) : JavisTool {
     override val name: String = "whatsapp.get_chat"
     override val description: String = "Get information about a WhatsApp chat."
     override val parametersSchema: JSONObject? = JSONObject("{\"chatId\":\"string\"}")
@@ -121,7 +123,7 @@ class WhatsAppGetChatTool(
 
 class WhatsAppGetRecentMessagesTool(
     private val client: WhatsAppClient
-) : AgentTool {
+) : JavisTool {
     override val name: String = "whatsapp.get_recent_messages"
     override val description: String = "Get recent messages from a WhatsApp chat."
     override val parametersSchema: JSONObject? = JSONObject("{\"chatId\":\"string\",\"limit\":\"integer\"}")
@@ -143,7 +145,7 @@ class WhatsAppGetRecentMessagesTool(
 
 class WhatsAppGetUnreadMessagesTool(
     private val client: WhatsAppClient
-) : AgentTool {
+) : JavisTool {
     override val name: String = "whatsapp.get_unread_messages"
     override val description: String = "Get unread WhatsApp messages."
     override val parametersSchema: JSONObject? = JSONObject("{\"limit\":\"integer\"}")
@@ -164,7 +166,7 @@ class WhatsAppGetUnreadMessagesTool(
 
 class WhatsAppSearchMessagesTool(
     private val client: WhatsAppClient
-) : AgentTool {
+) : JavisTool {
     override val name: String = "whatsapp.search_messages"
     override val description: String = "Search messages in WhatsApp."
     override val parametersSchema: JSONObject? = JSONObject("{\"query\":\"string\",\"chatId\":\"string\"}")
@@ -186,7 +188,7 @@ class WhatsAppSearchMessagesTool(
 
 class WhatsAppGetMessageTool(
     private val client: WhatsAppClient
-) : AgentTool {
+) : JavisTool {
     override val name: String = "whatsapp.get_message"
     override val description: String = "Get a specific WhatsApp message."
     override val parametersSchema: JSONObject? = JSONObject("{\"messageId\":\"string\"}")
@@ -208,7 +210,7 @@ class WhatsAppGetMessageTool(
 
 class WhatsAppSendMessageTool(
     private val client: WhatsAppClient
-) : AgentTool {
+) : JavisTool {
     override val name: String = "whatsapp.send_message"
     override val description: String = "Send a text message on WhatsApp."
     override val parametersSchema: JSONObject? = JSONObject("{\"chatId\":\"string\",\"text\":\"string\"}")
@@ -235,7 +237,7 @@ class WhatsAppSendMessageTool(
 
 class WhatsAppReplyTool(
     private val client: WhatsAppClient
-) : AgentTool {
+) : JavisTool {
     override val name: String = "whatsapp.reply"
     override val description: String = "Reply to a specific WhatsApp message."
     override val parametersSchema: JSONObject? = JSONObject("{\"chatId\":\"string\",\"messageId\":\"string\",\"text\":\"string\"}")

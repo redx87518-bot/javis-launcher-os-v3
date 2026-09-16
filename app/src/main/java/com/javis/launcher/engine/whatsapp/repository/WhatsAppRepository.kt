@@ -2,8 +2,9 @@ package com.javis.launcher.engine.whatsapp.repository
 
 import android.content.Context
 import android.util.Log
-import com.javis.launcher.engine.whatsapp.WhatsAppModels.WhatsAppMessage
-import com.javis.launcher.engine.whatsapp.WhatsAppModels.WhatsAppChat
+import com.javis.launcher.engine.whatsapp.WhatsAppMessage
+import com.javis.launcher.engine.whatsapp.WhatsAppChat
+import com.javis.launcher.models.WhatsAppConnectionState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
