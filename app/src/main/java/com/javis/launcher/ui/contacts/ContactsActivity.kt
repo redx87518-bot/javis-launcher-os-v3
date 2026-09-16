@@ -101,6 +101,13 @@ class ContactsActivity : AppCompatActivity() {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if (grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) loadContacts()
     }
+
+    private fun applySavedTheme() {
+        val theme = ThemeManager.getTheme(this)
+        val styleName = ThemeManager.themeStyleName(theme)
+        val resId = resources.getIdentifier(styleName, "style", packageName)
+        if (resId != 0) setTheme(resId)
+    }
 }
 
 class ContactAdapter(
@@ -129,11 +136,4 @@ class ContactAdapter(
     }
 
     override fun getItemCount() = contacts.size
-
-    private fun applySavedTheme() {
-        val theme = ThemeManager.getTheme(this)
-        val styleName = ThemeManager.themeStyleName(theme)
-        val resId = resources.getIdentifier(styleName, "style", packageName)
-        if (resId != 0) setTheme(resId)
-    }
 }

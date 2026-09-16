@@ -65,6 +65,13 @@ class MemoryActivity : AppCompatActivity() {
     }
 
     private fun formatKey(key: String) = key.replace("_", " ").replaceFirstChar { it.uppercase() }
+
+    private fun applySavedTheme() {
+        val theme = ThemeManager.getTheme(this)
+        val styleName = ThemeManager.themeStyleName(theme)
+        val resId = resources.getIdentifier(styleName, "style", packageName)
+        if (resId != 0) setTheme(resId)
+    }
 }
 
 data class MemoryItem(val key: String, val value: String, val isHeader: Boolean = false)
@@ -98,12 +105,5 @@ class MemoryAdapter(private val items: List<MemoryItem>) :
     class MemVH(v: View) : RecyclerView.ViewHolder(v) {
         val tvKey: TextView = v.findViewById(R.id.tv_key)
         val tvVal: TextView = v.findViewById(R.id.tv_value)
-    }
-
-    private fun applySavedTheme() {
-        val theme = ThemeManager.getTheme(this)
-        val styleName = ThemeManager.themeStyleName(theme)
-        val resId = resources.getIdentifier(styleName, "style", packageName)
-        if (resId != 0) setTheme(resId)
     }
 }
