@@ -23,7 +23,7 @@ class AlarmsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_alarms)
 
-        findViewById<View>(R.id.btn_back).setOnClickListener { finish() }
+        findViewById<View>(R.id.btn_back)?.setOnClickListener { finish() }
 
         val tvInfo = findViewById<TextView>(R.id.tv_alarm_info)
         tvInfo.text = "Alarms are managed by your device's clock app.\nJAVIS can create new alarms for you."

@@ -668,6 +668,15 @@
                         android:text="Open Notification Settings"
                         android:backgroundTint="@color/javis_surface"
                         android:textColor="@color/javis_text_primary"/>
+
+                    <Button
+                        android:id="@+id/btn_link_whatsapp"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginTop="4dp"
+                        android:text="Link WhatsApp"
+                        android:backgroundTint="@color/theme_blue_primary"
+                        android:textColor="@color/white"/>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
