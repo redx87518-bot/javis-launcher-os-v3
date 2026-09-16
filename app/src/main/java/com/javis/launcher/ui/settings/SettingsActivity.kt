@@ -36,8 +36,8 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var ai: AIEngine
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
         applySavedTheme()
+        super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
         ai = AIEngine(this)
 
@@ -403,6 +403,7 @@ class SettingsActivity : AppCompatActivity() {
         val switchEnabled = findViewById<Switch>(R.id.switch_whatsapp)
         val tvWhatsAppStatus = findViewById<TextView>(R.id.tv_whatsapp_status)
         val btnOpenNotificationSettings = findViewById<Button>(R.id.btn_open_notification_settings)
+        val btnLinkWhatsApp = findViewById<Button>(R.id.btn_link_whatsapp)
 
         val prefs = getSharedPreferences("javis_whatsapp_prefs", MODE_PRIVATE)
         val isEnabled = prefs.getBoolean("enabled", false)
@@ -415,6 +416,10 @@ class SettingsActivity : AppCompatActivity() {
             prefs.edit().putBoolean("enabled", isChecked).apply()
             tvWhatsAppStatus.text = if (isChecked) "Enabled" else "Disabled"
             Toast.makeText(this, "WhatsApp integration ${if (isChecked) "enabled" else "disabled"}", Toast.LENGTH_SHORT).show()
+        }
+
+        btnLinkWhatsApp.setOnClickListener {
+            startActivity(Intent(this, com.javis.launcher.ui.whatsapp.link.WHsAppLinkActivity::class.java))
         }
 
         btnOpenNotificationSettings.setOnClickListener {
