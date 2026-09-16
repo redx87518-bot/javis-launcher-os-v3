@@ -7,7 +7,7 @@ import com.javis.launcher.engine.whatsapp.WhatsAppChat
 import com.javis.launcher.engine.whatsapp.WhatsAppClient
 import com.javis.launcher.engine.whatsapp.WhatsAppContact
 import com.javis.launcher.engine.whatsapp.WhatsAppMessage
-import com.javis.launcher.models.WhatsAppConnectionState
+import com.javis.launcher.engine.whatsapp.WhatsAppConnectionStatus
 import org.json.JSONObject
 
 class WhatsAppConnectionTool(
