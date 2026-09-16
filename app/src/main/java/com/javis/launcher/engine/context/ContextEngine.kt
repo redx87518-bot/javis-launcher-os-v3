@@ -102,7 +102,7 @@ object ContextEngine {
         return context.lastContact?.let {
             it.name.lowercase() == name ||
             name.contains(it.name.lowercase()) ||
-            name.contains(it.displayName.lowercase())
+            name.contains(it.name.lowercase()) ||
         } ?: false
     }
 

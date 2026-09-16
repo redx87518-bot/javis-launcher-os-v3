@@ -15,12 +15,13 @@ import com.javis.launcher.JavisApplication
 import com.javis.launcher.R
 import com.javis.launcher.engine.PersonalityEngine
 import com.javis.launcher.engine.RoutineLearningEngine
-import com.javis.launcher.engine.WhatsAppEngine
+import com.javis.launcher.engine.whatsapp.WhatsAppEngine
 import com.javis.launcher.engine.ai.AIEngine
 import com.javis.launcher.engine.voice.EdgeTts
 import com.javis.launcher.engine.voice.VoiceEngine
 import com.javis.launcher.models.AIProvider
-import com.javis.launcher.ui.whatsapp.WhatsappMainActivity
+import com.javis.launcher.ui.whatsapp.WhatsAppMainActivity
+import com.javis.launcher.ui.voice.VoiceDiagnosticsActivity
 import com.javis.launcher.util.ThemeManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

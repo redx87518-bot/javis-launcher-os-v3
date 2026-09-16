@@ -3,10 +3,11 @@ package com.javis.launcher.engine.whatsapp.tools
 import android.content.Context
 import com.javis.launcher.engine.agent.JavisTool
 import com.javis.launcher.engine.agent.ToolResult
-import com.javis.launcher.engine.whatsapp.WhatsAppClient
 import com.javis.launcher.engine.whatsapp.WhatsAppChat
+import com.javis.launcher.engine.whatsapp.WhatsAppClient
 import com.javis.launcher.engine.whatsapp.WhatsAppContact
 import com.javis.launcher.engine.whatsapp.WhatsAppMessage
+import com.javis.launcher.models.WhatsAppConnectionState
 import org.json.JSONObject
 
 class WhatsAppConnectionTool(
@@ -18,15 +19,16 @@ class WhatsAppConnectionTool(
 
     override suspend fun execute(arguments: Map<String, Any?>): ToolResult {
         return try {
-            val status = client.connectionStatus()
-            ToolResult.Success(
-                data = mapOf(
-                    "isConnected" to status.isConnected,
-                    "isPairing" to status.isPairing,
-                    "errorMessage" to status.errorMessage
-                ),
-                userMessage = if (status.isConnected) "WhatsApp is connected." else "WhatsApp is not connected."
-            )
+                val status = (client as? com.javis.launcher.engine.whatsapp.WhatsmeowWhatsAppClient)?.connectionStatus()
+                    ?: WhatsAppConnectionStatus.DISCONNECTED
+                ToolResult.Success(
+                    data = mapOf(
+                        "isConnected" to (status == WhatsAppConnectionStatus.CONNECTED),
+                        "isPairing" to (status == WhatsAppConnectionStatus.PAIRING),
+                        "errorMessage" to ""
+                    ),
+                    userMessage = if (status == WhatsAppConnectionStatus.CONNECTED) "WhatsApp is connected." else "WhatsApp is not connected."
+                )
         } catch (e: Exception) {
             ToolResult.Failed("Failed to check WhatsApp status: ${e.message}", retryable = true)
         }

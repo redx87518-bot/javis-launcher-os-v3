@@ -24,7 +24,7 @@ import com.javis.launcher.engine.PersonalityEngine
 import com.javis.launcher.engine.ProactiveIntelligenceEngine
 import com.javis.launcher.engine.RoutineLearningEngine
 import com.javis.launcher.engine.SystemDiagnosticsEngine
-import com.javis.launcher.engine.WhatsAppEngine
+import com.javis.launcher.engine.whatsapp.WhatsAppEngine
 import com.javis.launcher.receivers.UnlockReceiver
 import com.javis.launcher.ui.alarms.AlarmsActivity
 import com.javis.launcher.ui.chat.ChatActivity
