@@ -60,7 +60,7 @@ class HomeActivity : AppCompatActivity() {
     private var lastGreetedAtMs = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        ThemeManager.applyTheme(this)
+        applySavedTheme()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_home)
 
@@ -317,6 +317,13 @@ class HomeActivity : AppCompatActivity() {
     }
 
     override fun onBackPressed() { /* Launcher never exits on back */ }
+
+    private fun applySavedTheme() {
+        val theme = ThemeManager.getTheme(this)
+        val styleName = ThemeManager.themeStyleName(theme)
+        val resId = resources.getIdentifier(styleName, "style", packageName)
+        if (resId != 0) setTheme(resId)
+    }
 
     // ─── System helpers ───────────────────────────────────────────────────
     private fun getBatteryLevel(): Int {

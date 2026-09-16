@@ -11,7 +11,8 @@
         android:orientation="horizontal"
         android:gravity="center_vertical"
         android:background="@color/javis_surface"
-        android:paddingHorizontal="8dp">
+        android:paddingHorizontal="8dp"
+        android:elevation="2dp">
 
         <ImageButton
             android:id="@+id/btn_back"
@@ -40,13 +41,14 @@
         android:textSize="11sp"
         android:letterSpacing="0.2"
         android:paddingHorizontal="16dp"
-        android:paddingTop="12dp"/>
+        android:paddingTop="16dp"/>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_frequent"
         android:layout_width="match_parent"
-        android:layout_height="100dp"
-        android:paddingHorizontal="8dp"/>
+        android:layout_height="110dp"
+        android:paddingHorizontal="8dp"
+        android:clipToPadding="false"/>
 
     <TextView
         android:layout_width="wrap_content"
@@ -56,11 +58,12 @@
         android:textSize="11sp"
         android:letterSpacing="0.2"
         android:paddingHorizontal="16dp"
-        android:paddingTop="12dp"/>
+        android:paddingTop="16dp"/>
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_all_contacts"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"/>
+        android:layout_weight="1"
+        android:clipToPadding="false"/>
 </LinearLayout>

@@ -11,6 +11,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.javis.launcher.JavisApplication
 import com.javis.launcher.R
+import com.javis.launcher.util.ThemeManager
 import com.javis.launcher.models.Memory
 import kotlinx.coroutines.launch
 
@@ -19,6 +20,7 @@ class MemoryActivity : AppCompatActivity() {
     private val memory get() = JavisApplication.instance.memoryEngine!!
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        applySavedTheme()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_memory)
 
@@ -96,5 +98,12 @@ class MemoryAdapter(private val items: List<MemoryItem>) :
     class MemVH(v: View) : RecyclerView.ViewHolder(v) {
         val tvKey: TextView = v.findViewById(R.id.tv_key)
         val tvVal: TextView = v.findViewById(R.id.tv_value)
+    }
+
+    private fun applySavedTheme() {
+        val theme = ThemeManager.getTheme(this)
+        val styleName = ThemeManager.themeStyleName(theme)
+        val resId = resources.getIdentifier(styleName, "style", packageName)
+        if (resId != 0) setTheme(resId)
     }
 }

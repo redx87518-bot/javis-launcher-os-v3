@@ -17,7 +17,15 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <!-- Top greeting area -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:background="@color/javis_bg"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/btn_orb"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
     <LinearLayout
         android:id="@+id/layout_top"
         android:layout_width="match_parent"
@@ -25,7 +33,7 @@
         android:orientation="vertical"
         android:paddingHorizontal="24dp"
         android:paddingTop="48dp"
-        android:background="#E6F0F0FF"
+        android:background="@android:color/transparent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent">
 
@@ -36,7 +44,8 @@
             android:text="Good morning, Sir."
             android:textColor="@color/javis_text_primary"
             android:textSize="22sp"
-            android:fontFamily="sans-serif-light" />
+            android:fontFamily="sans-serif-light"
+            android:letterSpacing="0.02" />
 
         <TextView
             android:id="@+id/tv_time"
@@ -52,7 +61,8 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/javis_text_secondary"
-            android:textSize="14sp" />
+            android:textSize="14sp"
+            android:letterSpacing="0.02" />
 
         <TextView
             android:id="@+id/tv_status_line"
@@ -62,12 +72,11 @@
             android:text="All systems operational."
             android:textColor="@color/javis_green"
             android:textSize="12sp"
-            android:background="#E6F0F0FF"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="4dp"/>
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="5dp"
+            android:background="@drawable/bg_pill" />
     </LinearLayout>
 
-    <!-- AI Orb (center) -->
     <com.javis.launcher.ui.voice.OrbView
         android:id="@+id/btn_orb"
         android:layout_width="180dp"
@@ -79,7 +88,6 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Provider + Command Center row -->
     <LinearLayout
         android:id="@+id/layout_status_row"
         android:layout_width="wrap_content"
@@ -90,8 +98,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toTopOf="@id/rv_favorite_apps"
-        android:layout_marginBottom="4dp"
-        android:background="@android:color/transparent">
+        android:layout_marginBottom="4dp">
 
         <TextView
             android:id="@+id/tv_provider_status"
@@ -119,7 +126,6 @@
             android:focusable="true"/>
     </LinearLayout>
 
-    <!-- Favorite Apps -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_favorite_apps"
         android:layout_width="match_parent"
@@ -128,16 +134,17 @@
         app:layout_constraintBottom_toTopOf="@id/layout_nav"
         app:layout_constraintStart_toStartOf="parent"
         android:layout_marginBottom="8dp"
-        android:background="@android:color/transparent"/>
+        android:background="@android:color/transparent"
+        android:clipToPadding="false"/>
 
-    <!-- Bottom Navigation -->
     <LinearLayout
         android:id="@+id/layout_nav"
         android:layout_width="match_parent"
         android:layout_height="72dp"
         android:orientation="horizontal"
         android:gravity="center"
-        android:background="#DDFFFFFF"
+        android:background="@color/javis_bg"
+        android:elevation="8dp"
         android:paddingHorizontal="8dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent">

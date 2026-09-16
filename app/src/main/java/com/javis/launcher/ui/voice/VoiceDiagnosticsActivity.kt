@@ -8,12 +8,14 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.javis.launcher.JavisApplication
 import com.javis.launcher.R
+import com.javis.launcher.util.ThemeManager
 
 class VoiceDiagnosticsActivity : AppCompatActivity() {
 
     private val voice get() = JavisApplication.instance.voiceEngine!!
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        applySavedTheme()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_voice_diagnostics)
 
@@ -42,5 +44,12 @@ class VoiceDiagnosticsActivity : AppCompatActivity() {
                 runOnUiThread { tvStatus.text = "Status: Ready" }
             }
         }
+    }
+
+    private fun applySavedTheme() {
+        val theme = ThemeManager.getTheme(this)
+        val styleName = ThemeManager.themeStyleName(theme)
+        val resId = resources.getIdentifier(styleName, "style", packageName)
+        if (resId != 0) setTheme(resId)
     }
 }

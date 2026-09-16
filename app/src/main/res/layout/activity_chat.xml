@@ -6,7 +6,6 @@
     android:layout_height="match_parent"
     android:background="@color/javis_bg">
 
-    <!-- Header -->
     <LinearLayout
         android:id="@+id/header"
         android:layout_width="match_parent"
@@ -15,6 +14,7 @@
         android:gravity="center_vertical"
         android:background="@color/javis_surface"
         android:paddingHorizontal="8dp"
+        android:elevation="2dp"
         app:layout_constraintTop_toTopOf="parent">
 
         <ImageButton
@@ -34,6 +34,7 @@
             android:textColor="@color/javis_text_primary"
             android:textSize="18sp"
             android:fontFamily="sans-serif-medium"
+            android:letterSpacing="0.05"
             android:layout_marginStart="8dp"/>
 
         <TextView
@@ -42,22 +43,22 @@
             android:layout_height="wrap_content"
             android:textColor="@color/javis_green"
             android:textSize="11sp"
-            android:paddingHorizontal="8dp"/>
+            android:paddingHorizontal="8dp"
+            android:background="@drawable/bg_pill" />
     </LinearLayout>
 
-    <!-- Chat messages -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_chat"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:paddingVertical="8dp"
         android:clipToPadding="false"
+        android:background="@color/javis_bg"
         app:layout_constraintTop_toBottomOf="@id/header"
         app:layout_constraintBottom_toTopOf="@id/input_layout"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"/>
 
-    <!-- Input area -->
     <LinearLayout
         android:id="@+id/input_layout"
         android:layout_width="match_parent"
@@ -67,6 +68,7 @@
         android:background="@color/javis_surface"
         android:paddingHorizontal="12dp"
         android:paddingVertical="8dp"
+        android:elevation="4dp"
         app:layout_constraintBottom_toBottomOf="parent">
 
         <EditText

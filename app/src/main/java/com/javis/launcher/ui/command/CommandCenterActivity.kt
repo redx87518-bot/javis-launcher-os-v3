@@ -12,6 +12,7 @@ import android.view.LayoutInflater
 import android.view.ViewGroup
 import com.javis.launcher.JavisApplication
 import com.javis.launcher.R
+import com.javis.launcher.util.ThemeManager
 import com.javis.launcher.engine.PersonalityEngine
 import com.javis.launcher.models.CommandLog
 import kotlinx.coroutines.launch
@@ -23,6 +24,7 @@ class CommandCenterActivity : AppCompatActivity() {
     private val memory get() = JavisApplication.instance.memoryEngine!!
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        applySavedTheme()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_command_center)
         findViewById<View>(R.id.btn_back).setOnClickListener { finish() }
@@ -93,5 +95,12 @@ class CommandCenterActivity : AppCompatActivity() {
         }
 
         override fun getItemCount() = logs.size
+    }
+
+    private fun applySavedTheme() {
+        val theme = ThemeManager.getTheme(this)
+        val styleName = ThemeManager.themeStyleName(theme)
+        val resId = resources.getIdentifier(styleName, "style", packageName)
+        if (resId != 0) setTheme(resId)
     }
 }

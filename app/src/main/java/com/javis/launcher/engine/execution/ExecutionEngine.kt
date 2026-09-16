@@ -217,7 +217,6 @@ class ExecutionEngine(private val context: Context) {
             putExtra(AlarmClock.EXTRA_HOUR, hour)
             putExtra(AlarmClock.EXTRA_MINUTES, minute)
             putExtra(AlarmClock.EXTRA_MESSAGE, label)
-            putExtra(AlarmClock.EXTRA_SKIP_UI, true)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK
         }
 

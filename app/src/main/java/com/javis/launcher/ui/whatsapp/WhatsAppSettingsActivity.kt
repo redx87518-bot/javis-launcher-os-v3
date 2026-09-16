@@ -7,6 +7,7 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.javis.launcher.JavisApplication
 import com.javis.launcher.R
+import com.javis.launcher.util.ThemeManager
 import com.javis.launcher.engine.voice.VoiceEngine
 import kotlinx.coroutines.*
 
@@ -16,6 +17,7 @@ class WhatsAppSettingsActivity : AppCompatActivity() {
     private val scope = CoroutineScope(Dispatchers.Main + Job())
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        applySavedTheme()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_whatsapp_settings)
 
@@ -86,5 +88,12 @@ class WhatsAppSettingsActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         scope.cancel()
+    }
+
+    private fun applySavedTheme() {
+        val theme = ThemeManager.getTheme(this)
+        val styleName = ThemeManager.themeStyleName(theme)
+        val resId = resources.getIdentifier(styleName, "style", packageName)
+        if (resId != 0) setTheme(resId)
     }
 }

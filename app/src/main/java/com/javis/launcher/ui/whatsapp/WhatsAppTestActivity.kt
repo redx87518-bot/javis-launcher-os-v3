@@ -4,11 +4,13 @@ import android.os.Bundle
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.javis.launcher.R
+import com.javis.launcher.util.ThemeManager
 import com.javis.launcher.engine.whatsapp.repository.WhatsAppRepository
 
 class WhatsAppTestActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        applySavedTheme()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_whatsapp_test)
 
@@ -29,5 +31,12 @@ class WhatsAppTestActivity : AppCompatActivity() {
             appendLine("Chats stored: ${repo.chats.value.size}")
         }
         tvResult.text = text
+    }
+
+    private fun applySavedTheme() {
+        val theme = ThemeManager.getTheme(this)
+        val styleName = ThemeManager.themeStyleName(theme)
+        val resId = resources.getIdentifier(styleName, "style", packageName)
+        if (resId != 0) setTheme(resId)
     }
 }

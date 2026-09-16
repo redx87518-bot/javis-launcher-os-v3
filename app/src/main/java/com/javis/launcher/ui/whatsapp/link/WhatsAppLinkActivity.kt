@@ -6,6 +6,7 @@ import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
 import com.javis.launcher.JavisApplication
 import com.javis.launcher.R
+import com.javis.launcher.util.ThemeManager
 import com.javis.launcher.engine.voice.VoiceEngine
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collect
@@ -30,6 +31,7 @@ class WhatsAppLinkActivity : AppCompatActivity() {
     private var phase: Int = 0 // 0=enter_phone, 1=show_code, 2=connected
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        applySavedTheme()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_whatsapp_link)
 
@@ -159,5 +161,12 @@ class WhatsAppLinkActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         scope.cancel()
+    }
+
+    private fun applySavedTheme() {
+        val theme = ThemeManager.getTheme(this)
+        val styleName = ThemeManager.themeStyleName(theme)
+        val resId = resources.getIdentifier(styleName, "style", packageName)
+        if (resId != 0) setTheme(resId)
     }
 }

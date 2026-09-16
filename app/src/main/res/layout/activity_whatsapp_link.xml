@@ -14,7 +14,7 @@
         android:text="Link WhatsApp"
         android:textColor="@color/javis_text_primary"
         android:textSize="22sp"
-        android:fontFamily="sans-serif-medium"
+        android:fontFamily="sans-serif-light"
         android:layout_marginBottom="8dp"/>
 
     <TextView
@@ -33,10 +33,10 @@
         android:text="Disconnected"
         android:textColor="@color/javis_red"
         android:textSize="13sp"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="4dp"
+        android:paddingHorizontal="14dp"
+        android:paddingVertical="6dp"
         android:background="@drawable/bg_pill"
-        android:layout_marginBottom="20dp"/>
+        android:layout_marginBottom="24dp"/>
 
     <EditText
         android:id="@+id/et_phone_number"
@@ -55,10 +55,13 @@
     <Button
         android:id="@+id/btn_link_whatsapp"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="52dp"
         android:text="Link WhatsApp"
         android:backgroundTint="@color/javis_green"
         android:textColor="@color/white"
+        android:textAllCaps="false"
+        android:textSize="14sp"
+        android:fontFamily="sans-serif-medium"
         android:layout_marginBottom="20dp"/>
 
     <ProgressBar
@@ -77,8 +80,8 @@
         android:textSize="28sp"
         android:fontFamily="monospace"
         android:letterSpacing="0.15"
-        android:paddingHorizontal="24dp"
-        android:paddingVertical="16dp"
+        android:paddingHorizontal="28dp"
+        android:paddingVertical="18dp"
         android:background="@drawable/bg_card"
         android:visibility="gone"
         android:layout_marginBottom="16dp"/>
@@ -97,30 +100,39 @@
     <Button
         android:id="@+id/btn_pair"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
+        android:layout_height="52dp"
         android:text="Confirm Pairing"
-        android:backgroundTint="@color/javis_blue"
+        android:backgroundTint="@color/theme_blue_primary"
         android:textColor="@color/white"
+        android:textAllCaps="false"
+        android:textSize="14sp"
+        android:fontFamily="sans-serif-medium"
         android:visibility="gone"
         android:layout_marginBottom="12dp"/>
 
     <Button
         android:id="@+id/btn_disconnect"
         android:layout_width="match_parent"
-        android:layout_height="44dp"
+        android:layout_height="48dp"
         android:text="Disconnect"
         android:backgroundTint="@color/javis_red"
         android:textColor="@color/white"
+        android:textAllCaps="false"
+        android:textSize="14sp"
+        android:fontFamily="sans-serif-medium"
         android:visibility="gone"
         android:layout_marginBottom="8dp"/>
 
     <Button
         android:id="@+id/btn_clear_session"
         android:layout_width="match_parent"
-        android:layout_height="44dp"
+        android:layout_height="48dp"
         android:text="Clear Session"
         android:backgroundTint="@color/javis_surface"
         android:textColor="@color/javis_text_primary"
+        android:textAllCaps="false"
+        android:textSize="14sp"
+        android:fontFamily="sans-serif-medium"
         android:visibility="gone"/>
 
 </LinearLayout>

@@ -6,10 +6,12 @@ import android.widget.Button
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.javis.launcher.R
+import com.javis.launcher.util.ThemeManager
 
 class WhatsAppMainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        applySavedTheme()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_whatsapp_main)
 
@@ -37,5 +39,12 @@ class WhatsAppMainActivity : AppCompatActivity() {
         btnSettings.setOnClickListener {
             startActivity(Intent(this, WhatsAppSettingsActivity::class.java))
         }
+    }
+
+    private fun applySavedTheme() {
+        val theme = ThemeManager.getTheme(this)
+        val styleName = ThemeManager.themeStyleName(theme)
+        val resId = resources.getIdentifier(styleName, "style", packageName)
+        if (resId != 0) setTheme(resId)
     }
 }

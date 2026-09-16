@@ -13,6 +13,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.javis.launcher.JavisApplication
 import com.javis.launcher.R
+import com.javis.launcher.util.ThemeManager
 import com.javis.launcher.engine.ai.AIEngine
 import android.util.Log
 import com.javis.launcher.engine.agent.AgentEngine
@@ -41,6 +42,7 @@ class VoiceActivity : AppCompatActivity() {
     private val handler = Handler(Looper.getMainLooper())
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        applySavedTheme()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_voice)
 
@@ -207,5 +209,12 @@ class VoiceActivity : AppCompatActivity() {
         super.onDestroy()
         recognition.destroy()
         voice?.stopSpeaking()
+    }
+
+    private fun applySavedTheme() {
+        val theme = ThemeManager.getTheme(this)
+        val styleName = ThemeManager.themeStyleName(theme)
+        val resId = resources.getIdentifier(styleName, "style", packageName)
+        if (resId != 0) setTheme(resId)
     }
 }

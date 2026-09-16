@@ -419,7 +419,7 @@ class SettingsActivity : AppCompatActivity() {
         }
 
         btnLinkWhatsApp.setOnClickListener {
-            startActivity(Intent(this, com.javis.launcher.ui.whatsapp.link.WHsAppLinkActivity::class.java))
+            startActivity(Intent(this, com.javis.launcher.ui.whatsapp.link.WhatsAppLinkActivity::class.java))
         }
 
         btnOpenNotificationSettings.setOnClickListener {

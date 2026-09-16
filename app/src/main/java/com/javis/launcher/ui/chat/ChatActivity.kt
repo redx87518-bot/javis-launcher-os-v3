@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.javis.launcher.JavisApplication
 import com.javis.launcher.R
+import com.javis.launcher.util.ThemeManager
 import com.javis.launcher.engine.ThinkingEngine
 import com.javis.launcher.engine.ai.AIEngine
 import com.javis.launcher.engine.agent.AgentEngine
@@ -40,6 +41,7 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var tvProvider: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        applySavedTheme()
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
 
@@ -140,5 +142,12 @@ class ChatActivity : AppCompatActivity() {
         messages.add(ChatMessage(text, isUser))
         adapter.notifyItemInserted(messages.size - 1)
         rvChat.scrollToPosition(messages.size - 1)
+    }
+
+    private fun applySavedTheme() {
+        val theme = ThemeManager.getTheme(this)
+        val styleName = ThemeManager.themeStyleName(theme)
+        val resId = resources.getIdentifier(styleName, "style", packageName)
+        if (resId != 0) setTheme(resId)
     }
 }
