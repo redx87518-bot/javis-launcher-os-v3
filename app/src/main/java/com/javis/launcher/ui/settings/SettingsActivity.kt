@@ -356,14 +356,14 @@ class SettingsActivity : AppCompatActivity() {
         val btnClear     = findViewById<Button>(R.id.btn_clear_memory)
 
         lifecycleScope.launch {
-            val name = memory.getUserName()
+            val name = memory?.getUserName()
             tvCurrentName.text = if (name != null) "Current: $name" else "Not set"
         }
 
         btnSaveName.setOnClickListener {
             val name = etName.text.toString().trim()
             if (name.isBlank()) return@setOnClickListener
-            memory.setUserName(name)
+            memory?.setUserName(name)
             tvCurrentName.text = "Current: $name"
             etName.text.clear()
             Toast.makeText(this, "Name saved: $name", Toast.LENGTH_SHORT).show()
@@ -375,8 +375,8 @@ class SettingsActivity : AppCompatActivity() {
                 .setMessage("This will erase all stored memories and conversation history. Continue?")
                 .setPositiveButton("Clear") { _, _ ->
                     lifecycleScope.launch(Dispatchers.IO) {
-                        val all = memory.recallAll()
-                        all.forEach { m -> memory.forget(m.key) }
+                        val all = memory?.recallAll() ?: emptyList()
+                        all.forEach { m -> memory?.forget(m.key) }
                         withContext(Dispatchers.Main) {
                             Toast.makeText(this@SettingsActivity, "Memory cleared.", Toast.LENGTH_SHORT).show()
                             tvCurrentName.text = "Not set"
@@ -392,8 +392,8 @@ class SettingsActivity : AppCompatActivity() {
     private fun setupRoutineSection() {
         val tvInsights = findViewById<TextView>(R.id.tv_routine_insights)
         lifecycleScope.launch {
-            val apps     = memory.getTopApps(3)
-            val contacts = memory.getTopContacts(3)
+            val apps     = memory?.getTopApps(3) ?: emptyList()
+            val contacts = memory?.getTopContacts(3) ?: emptyList()
             tvInsights.text = RoutineLearningEngine.getInsightText(apps, contacts)
         }
     }
