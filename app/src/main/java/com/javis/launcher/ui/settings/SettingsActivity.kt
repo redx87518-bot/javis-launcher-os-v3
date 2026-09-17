@@ -281,10 +281,15 @@ class SettingsActivity : AppCompatActivity() {
         val spinnerVoice = findViewById<Spinner>(R.id.spinner_voice)
         val tvVoiceStatus = findViewById<TextView>(R.id.tv_voice_status)
         val btnTestVoice = findViewById<Button>(R.id.btn_test_voice)
+        val etElevenKey = findViewById<EditText>(R.id.et_eleven_api_key)
+        val etElevenVoice = findViewById<EditText>(R.id.et_eleven_voice_id)
+        val btnSaveVoice = findViewById<Button>(R.id.btn_save_voice)
 
         val prefs = getSharedPreferences("javis_voice_prefs", MODE_PRIVATE)
         val savedEngine = prefs.getString("tts_engine", "system") ?: "system"
         val savedVoice = prefs.getString("edge_voice_id", "en-GB-RyanNeural") ?: "en-GB-RyanNeural"
+        val savedElevenKey = prefs.getString("eleven_api_key", "") ?: ""
+        val savedElevenVoice = prefs.getString("eleven_voice_id", "21m00Tcm4TlvDq8ikWAM") ?: "21m00Tcm4TlvDq8ikWAM"
 
         val voiceAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item,
             EdgeTts.VOICES.map { "${it.first} — ${it.second}" })
@@ -293,29 +298,42 @@ class SettingsActivity : AppCompatActivity() {
         val voiceIndex = EdgeTts.VOICES.indexOfFirst { it.first == savedVoice }
         spinnerVoice.setSelection(if (voiceIndex >= 0) voiceIndex else 0)
 
+        etElevenKey.setText(savedElevenKey)
+        etElevenVoice.setText(savedElevenVoice)
+
         val checkedId = when (savedEngine) {
             "edge" -> R.id.rb_tts_edge
+            "eleven" -> R.id.rb_tts_eleven
             else -> R.id.rb_tts_system
         }
         rgTts.check(checkedId)
         tvVoiceStatus.text = when (savedEngine) {
             "edge" -> "Online TTS (${EdgeTts.getVoiceDisplayName(savedVoice)})"
+            "eleven" -> "Eleven Labs Active"
             else -> "Offline TTS (Android TTS)"
         }
 
         spinnerVoice.isEnabled = savedEngine == "edge"
+        etElevenKey.isEnabled = savedEngine == "eleven"
+        etElevenVoice.isEnabled = savedEngine == "eleven"
+        btnSaveVoice.isEnabled = savedEngine == "eleven"
 
         rgTts.setOnCheckedChangeListener { _, checkedId ->
             val engine = when (checkedId) {
                 R.id.rb_tts_edge -> "edge"
+                R.id.rb_tts_eleven -> "eleven"
                 else -> "system"
             }
             prefs.edit().putString("tts_engine", engine).apply()
             spinnerVoice.isEnabled = engine == "edge"
+            etElevenKey.isEnabled = engine == "eleven"
+            etElevenVoice.isEnabled = engine == "eleven"
+            btnSaveVoice.isEnabled = engine == "eleven"
 
             val currentVoice = prefs.getString("edge_voice_id", "en-GB-RyanNeural") ?: "en-GB-RyanNeural"
             tvVoiceStatus.text = when (engine) {
                 "edge" -> "Online TTS (${EdgeTts.getVoiceDisplayName(currentVoice)})"
+                "eleven" -> "Eleven Labs Active"
                 else -> "Offline TTS (Android TTS)"
             }
             voice?.refreshPersonality()
@@ -329,10 +347,26 @@ class SettingsActivity : AppCompatActivity() {
                 val engine = prefs.getString("tts_engine", "system") ?: "system"
                 tvVoiceStatus.text = when (engine) {
                     "edge" -> "Online TTS (${EdgeTts.getVoiceDisplayName(selectedVoice)})"
+                    "eleven" -> "Eleven Labs Active"
                     else -> "Offline TTS (Android TTS)"
                 }
             }
             override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
+        btnSaveVoice.setOnClickListener {
+            val key = etElevenKey.text.toString().trim()
+            val voiceId = etElevenVoice.text.toString().trim().ifBlank { "21m00Tcm4TlvDq8ikWAM" }
+            if (key.isBlank()) {
+                Toast.makeText(this, "Enter your Eleven Labs API key", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            prefs.edit()
+                .putString("eleven_api_key", key)
+                .putString("eleven_voice_id", voiceId)
+                .apply()
+            Toast.makeText(this, "Eleven Labs settings saved ✓", Toast.LENGTH_SHORT).show()
+            voice?.refreshPersonality()
         }
 
         btnTestVoice.setOnClickListener {
@@ -341,6 +375,10 @@ class SettingsActivity : AppCompatActivity() {
                 val voiceId = prefs.getString("edge_voice_id", "en-GB-RyanNeural") ?: "en-GB-RyanNeural"
                 Toast.makeText(this, "Testing Online TTS (Edge TTS)...", Toast.LENGTH_SHORT).show()
                 voice?.speak("Hello, Sir. This is JARVIS online voice. How do you like my British accent?")
+            } else if (engine == "eleven") {
+                val voiceId = prefs.getString("eleven_voice_id", "21m00Tcm4TlvDq8ikWAM") ?: "21m00Tcm4TlvDq8ikWAM"
+                Toast.makeText(this, "Testing Eleven Labs TTS (voice: $voiceId)...", Toast.LENGTH_SHORT).show()
+                voice?.speak("Hello, Sir. This is Eleven Labs TTS speaking.")
             } else {
                 Toast.makeText(this, "Testing Offline TTS (System TTS)...", Toast.LENGTH_SHORT).show()
                 voice?.speak("Hello, Sir. This is JARVIS offline voice. Fully local, no internet required.")
