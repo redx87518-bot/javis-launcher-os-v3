@@ -90,7 +90,7 @@
         android:id="@+id/tv_instructions"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="On your primary WhatsApp phone: Settings → Linked devices → Link with phone number → Enter code above"
+        android:text="WhatsApp will open with the pairing code. Confirm on both devices to complete linking."
         android:textColor="@color/javis_text_secondary"
         android:textSize="12sp"
         android:gravity="center"

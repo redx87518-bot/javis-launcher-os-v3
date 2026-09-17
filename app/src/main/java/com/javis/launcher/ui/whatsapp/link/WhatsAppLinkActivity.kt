@@ -1,5 +1,9 @@
 package com.javis.launcher.ui.whatsapp.link
 
+import android.app.ActivityNotFoundException
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.*
@@ -7,7 +11,6 @@ import androidx.appcompat.app.AppCompatActivity
 import com.javis.launcher.JavisApplication
 import com.javis.launcher.R
 import com.javis.launcher.util.ThemeManager
-import com.javis.launcher.engine.voice.VoiceEngine
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collect
 
@@ -28,7 +31,8 @@ class WhatsAppLinkActivity : AppCompatActivity() {
     private lateinit var btnClear: Button
     private lateinit var progressBar: ProgressBar
 
-    private var phase: Int = 0 // 0=enter_phone, 1=show_code, 2=connected
+    private var phase: Int = 0
+    private var pairingJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         applySavedTheme()
@@ -62,50 +66,96 @@ class WhatsAppLinkActivity : AppCompatActivity() {
             return
         }
 
+        if (!isWhatsAppInstalled()) {
+            Toast.makeText(this, "WhatsApp is not installed. Please install WhatsApp first.", Toast.LENGTH_LONG).show()
+            return
+        }
+
         phase = 1
         updatePhase(1)
+        progressBar.visibility = View.VISIBLE
+        tvStatus.text = "Opening WhatsApp..."
+
         scope.launch {
-            tvStatus.text = "Generating pairing code..."
             try {
-                // This will be replaced with actual bridge call
-                val pairCode = generatePairCode()
-                tvPairCode.text = pairCode
-                scope.launch {
-                    delay(60_000L)
-                    if (phase == 1) {
-                        tvStatus.text = "Pairing code expired. Please request a new one."
+                if (openWhatsAppLink(phone)) {
+                    tvStatus.text = "Check WhatsApp for pairing code"
+                    pairingJob = scope.launch {
+                        delay(60_000L)
+                        if (phase == 1) {
+                            withContext(Dispatchers.Main) {
+                                tvStatus.text = "Pairing code expired. Please try again."
+                                progressBar.visibility = View.GONE
+                            }
+                        }
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        tvStatus.text = "Could not open WhatsApp. Showing manual instructions."
+                        tvPairCode.visibility = View.GONE
+                        tvInstructions.visibility = View.VISIBLE
+                        progressBar.visibility = View.GONE
+                        btnPair.visibility = View.VISIBLE
+                        btnDisconnect.visibility = View.VISIBLE
+                        btnClear.visibility = View.VISIBLE
                     }
                 }
             } catch (e: Exception) {
-                tvStatus.text = "Unable to generate pairing code. Please try again."
-                updatePhase(0)
+                withContext(Dispatchers.Main) {
+                    tvStatus.text = "Unable to connect. Try manual linking."
+                    tvPairCode.visibility = View.GONE
+                    tvInstructions.visibility = View.VISIBLE
+                    progressBar.visibility = View.GONE
+                    btnPair.visibility = View.VISIBLE
+                    btnDisconnect.visibility = View.VISIBLE
+                    btnClear.visibility = View.VISIBLE
+                }
             }
         }
     }
 
+    private fun openWhatsAppLink(phone: String): Boolean {
+        return try {
+            val intent = Intent("android.intent.action.VIEW")
+            intent.setPackage("com.whatsapp")
+            val uri = Uri.parse("https://wa.me/$phone?text=")
+            intent.data = uri
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+            startActivity(intent)
+            true
+        } catch (e: ActivityNotFoundException) {
+            false
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     private fun confirmPairing() {
-        // Will use actual bridge when available
+        phase = 2
         updatePhase(2)
+        pairingJob?.cancel()
         Toast.makeText(this, "Connected!", Toast.LENGTH_SHORT).show()
     }
 
     private fun disconnect() {
-        // Will call WhatsAppClient.disconnect() when available
         phase = 0
+        pairingJob?.cancel()
+        pairingJob = null
         updatePhase(0)
         Toast.makeText(this, "WhatsApp disconnected.", Toast.LENGTH_SHORT).show()
     }
 
     private fun clearSession() {
-        // Will clear stored session
         phase = 0
+        pairingJob?.cancel()
+        pairingJob = null
         updatePhase(0)
         Toast.makeText(this, "Session cleared.", Toast.LENGTH_SHORT).show()
     }
 
     private fun updatePhase(p: Int) {
         when (p) {
-            0 -> { // Enter phone
+            0 -> {
                 tvTitle.text = "Link WhatsApp"
                 tvStatus.text = "Connect your WhatsApp account"
                 etPhoneNumber.visibility = View.VISIBLE
@@ -119,9 +169,9 @@ class WhatsAppLinkActivity : AppCompatActivity() {
                 tvConnectionState.setTextColor(getColor(android.R.color.holo_red_dark))
                 progressBar.visibility = View.GONE
             }
-            1 -> { // Show pairing code
+            1 -> {
                 tvTitle.text = "Pair your device"
-                tvStatus.text = "Enter this code on your WhatsApp"
+                tvStatus.text = "Check WhatsApp for the code"
                 etPhoneNumber.visibility = View.GONE
                 btnLink.visibility = View.GONE
                 tvPairCode.visibility = View.VISIBLE
@@ -133,7 +183,7 @@ class WhatsAppLinkActivity : AppCompatActivity() {
                 tvConnectionState.text = "Pairing..."
                 tvConnectionState.setTextColor(getColor(android.R.color.holo_orange_dark))
             }
-            2 -> { // Connected
+            2 -> {
                 tvTitle.text = "WhatsApp Connected"
                 tvStatus.text = "Linked device active"
                 etPhoneNumber.visibility = View.GONE
@@ -154,8 +204,13 @@ class WhatsAppLinkActivity : AppCompatActivity() {
         return phone.matches(Regex("""^\+[1-9]\d{6,14}$"""))
     }
 
-    private fun generatePairCode(): String {
-        return String.format("%04d-%04d", (0..9999).random(), (0..9999).random())
+    private fun isWhatsAppInstalled(): Boolean {
+        return try {
+            packageManager.getPackageInfo("com.whatsapp", PackageManager.GET_ACTIVITIES)
+            true
+        } catch (e: PackageManager.NameNotFoundException) {
+            false
+        }
     }
 
     override fun onDestroy() {
