@@ -67,35 +67,28 @@ class WhatsAppLinkActivity : AppCompatActivity() {
             return
         }
 
-        if (!isWhatsAppInstalled()) {
-            Toast.makeText(this, "WhatsApp is not installed on this device.", Toast.LENGTH_LONG).show()
-            tvInstructions.text = "Install WhatsApp from Google Play Store, then come back to link your device."
-            tvInstructions.visibility = View.VISIBLE
-            return
-        }
-
         linkedPhone = phone
         phase = 1
         updatePhase(1)
         progressBar.visibility = View.VISIBLE
-        tvStatus.text = "Sending link request to WhatsApp..."
+        tvStatus.text = "Requesting link code from WhatsApp..."
 
         linkJob = scope.launch {
             try {
-                val sent = sendLinkRequest(phone)
+                val requestSent = requestLinkCode(phone)
                 withContext(Dispatchers.Main) {
-                    if (sent) {
-                        tvStatus.text = "Open WhatsApp to confirm linking"
-                        tvInstructions.text = "WhatsApp should open shortly. Go to Linked Devices and confirm the pairing request on your WhatsApp. If WhatsApp doesn't open automatically, open it and go to Settings → Linked Devices."
+                    if (requestSent) {
+                        tvStatus.text = "Open WhatsApp Web to scan QR code"
+                        tvInstructions.text = "Open web.whatsapp.com in your browser. Scan the QR code shown with your WhatsApp app. Then confirm linking here."
                         tvPairCode.visibility = View.GONE
                         progressBar.visibility = View.GONE
                         btnPair.visibility = View.VISIBLE
                         btnDisconnect.visibility = View.VISIBLE
                         btnClear.visibility = View.VISIBLE
-                        startWhatsAppLink(phone)
+                        openWhatsAppWeb()
                     } else {
-                        tvStatus.text = "Could not reach WhatsApp"
-                        tvInstructions.text = "Please open WhatsApp manually and go to Settings → Linked Devices → Link Device."
+                        tvStatus.text = "Request failed"
+                        tvInstructions.text = "Could not reach WhatsApp servers. Check your internet connection and try again."
                         tvPairCode.visibility = View.GONE
                         tvInstructions.visibility = View.VISIBLE
                         progressBar.visibility = View.GONE
@@ -107,7 +100,7 @@ class WhatsAppLinkActivity : AppCompatActivity() {
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     tvStatus.text = "Link request failed"
-                    tvInstructions.text = "Error: ${e.message}. Please try opening WhatsApp manually."
+                    tvInstructions.text = "Error: ${e.message}. Please try again."
                     tvPairCode.visibility = View.GONE
                     tvInstructions.visibility = View.VISIBLE
                     progressBar.visibility = View.GONE
@@ -119,7 +112,7 @@ class WhatsAppLinkActivity : AppCompatActivity() {
         }
     }
 
-    private suspend fun sendLinkRequest(phone: String): Boolean {
+    private suspend fun requestLinkCode(phone: String): Boolean {
         return withContext(Dispatchers.IO) {
             try {
                 Thread.sleep(2000L)
@@ -130,27 +123,29 @@ class WhatsAppLinkActivity : AppCompatActivity() {
         }
     }
 
-    private fun startWhatsAppLink(phone: String) {
+    private fun openWhatsAppWeb() {
         scope.launch(Dispatchers.Main) {
             try {
                 val intent = Intent("android.intent.action.VIEW")
-                val uri = Uri.parse("https://wa.me/$phone")
+                val uri = Uri.parse("https://web.whatsapp.com")
                 intent.data = uri
-                intent.setPackage("com.whatsapp")
                 intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
                 startActivity(intent)
             } catch (e: ActivityNotFoundException) {
                 try {
                     val intent = Intent("android.intent.action.VIEW")
-                    val uri = Uri.parse("https://wa.me/$phone")
+                    val uri = Uri.parse("https://web.whatsapp.com")
                     intent.data = uri
                     intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
                     startActivity(intent)
                 } catch (e2: Exception) {
-                    Log.e("WhatsAppLink", "Failed to open WhatsApp", e2)
+                    Log.e("WhatsAppLink", "Failed to open WhatsApp Web", e2)
+                    withContext(Dispatchers.Main) {
+                        tvStatus.text = "Open web.whatsapp.com manually"
+                    }
                 }
             } catch (e: Exception) {
-                Log.e("WhatsAppLink", "Error opening WhatsApp", e)
+                Log.e("WhatsAppLink", "Error opening WhatsApp Web", e)
             }
         }
     }
@@ -219,7 +214,7 @@ class WhatsAppLinkActivity : AppCompatActivity() {
             }
             1 -> {
                 tvTitle.text = "Linking Device"
-                tvStatus.text = "Waiting for WhatsApp confirmation"
+                tvStatus.text = "Requesting link code..."
                 etPhoneNumber.visibility = View.GONE
                 btnLink.visibility = View.GONE
                 tvPairCode.visibility = View.GONE
